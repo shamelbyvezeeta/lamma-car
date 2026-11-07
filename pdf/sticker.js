@@ -27,7 +27,7 @@ const COLORS = {
 };
 const SPOT_WHITE = process.env.STICKER_WHITE_SPOT_NAME || 'White';
 const SPOT_CUT = process.env.STICKER_CUT_SPOT_NAME || 'CutContour';
-const LOGO = path.join(__dirname, '..', '..', 'public', 'brand', 'lamma-car-wordmark.png');
+const LOGO = path.join(__dirname, '..', '..', 'web', 'brand', 'lamma-car-wordmark.png');
 const LOGO_RATIO = 431 / 1506; // height / width of the wordmark asset
 
 function qrMatrix(text) {

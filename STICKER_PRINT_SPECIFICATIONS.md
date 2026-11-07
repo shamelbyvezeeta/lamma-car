@@ -18,10 +18,10 @@ viewer                                                    seen through the film 
 | Bleed | 2 mm each side (94 × 134 mm artwork) | Standard digital cut tolerance |
 | Safe margin | 4 mm inside trim | No critical content (logo, QR, text) in this band |
 | QR panel | 72 × 72 mm white panel, x 9 mm, y 33 mm from top-left (outside view) | Contains the symbol **and** its 4-module quiet zone |
-| QR symbol | 58.7–59.2 mm (v4: 33 modules × 1.76 mm; v5: 37 × 1.60 mm) | See QR_CODE_SPECIFICATION — depends on domain length |
+| QR symbol | 58.7–60.3 mm (v4: 33 modules × 1.76 mm; v5: 37 × 1.60 mm; v6: 41 × 1.47 mm) | Depends on the website address length — see QR_AND_STICKERS.md and SETUP_GITHUB_PAGES.md |
 | Logo | Lamma Car wordmark, 70 mm wide, top centred (y 8–28 mm) | Recognition from a distance |
 | CTA pill | 56 × 7.4 mm coral, “امسح الكود · SCAN ME” | Bilingual call to action |
-| Navy band | bottom 13 mm: tagline “Find it. Sell it. Easy.” + serial `LC-000123` | Brand + human-readable reference |
+| Navy band | bottom 13 mm: tagline “Find it. Sell it. Easy.” + the record code `7KQ2 M9XH 4D` | Brand + human-readable reference |
 
 ## 3. Material (recommended)
 | Item | Recommendation |
@@ -46,7 +46,7 @@ Colour: brand colours are provided as starting CMYK values — Navy C72 M62 Y45 
 Spot colour names are configurable (`STICKER_WHITE_SPOT_NAME`, `STICKER_CUT_SPOT_NAME`) to match the printer's RIP (e.g. `RDG_WHITE` for Roland VersaWorks).
 
 ## 5. Typography on the sticker
-English: Manrope ExtraBold (tagline, CTA), Manrope Bold (serial). Arabic: Alexandria Bold (CTA). Text is converted to outlines in PDF/SVG so the printer needs no fonts. Minimum text height ≈ 2.6 mm cap height.
+English: Manrope ExtraBold (tagline, CTA), Manrope Bold (code). Arabic: Alexandria Bold (CTA). Text is converted to outlines in PDF/SVG so the printer needs no fonts. Minimum text height ≈ 2.6 mm cap height.
 
 ## 6. Readability through glass
 - **Contrast:** opaque white behind the code prevents back-lighting from the cabin washing out the modules; 100 % K modules on white.
@@ -79,7 +79,7 @@ Record for every test: date, tester, sample/batch, car make/model/year, glass ty
 ### 9.2 Outdoor QR scanning
 - [ ] iPhone (current + 3-year-old model), native Camera app
 - [ ] Android (Samsung + one budget device), native camera / Google Lens
-- [ ] Opens the correct `/q/<code>` page; serial on sticker matches the admin record
+- [ ] Opens the correct `/q/<code>` page; the code printed on the sticker matches the record code (file name in `records/`) and the code shown at the bottom of the contact page
 
 ### 9.3 Lighting conditions
 - [ ] Direct midday sun on the glass  - [ ] Sun behind the scanner (reflection on glass)
@@ -118,10 +118,10 @@ Record the maximum reliable distance → use it in marketing/instructions.
 | `lamma-car-sticker-90x130-outside.png` | 600 dpi, 2220 × 3165 px incl. bleed, reading orientation |
 | `lamma-car-sticker-90x130-outside.svg` / `-mirrored.svg` | Editable vector (mm units). Text is outlined. Logo is the embedded original raster (vector not supplied). |
 
-The sample files encode `https://lamma-car.example/q/TESTCARD01` and show “SAMPLE” instead of a serial. Real per-code files come from **Batches → Download PDF**; regenerate the masters with the real domain via `QR_BASE_URL=https://… npm run build:sticker`.
+The master files encode `https://lamma-car.example/q/TESTCARD01` and show “SAMPLE” instead of a code; they are design references. Real per-record files come from the **Add record** or **Make sticker files** GitHub Actions (see QR_AND_STICKERS.md) and use the address in `site.json`.
 
 ## 11. Cutting & finishing
 Kiss-cut on the CutContour (90 × 130, R6) on sheets or rolls; supply individually cut or 4-up sheets with backing liner; pack flat, protected from scratches on the print side. Optional: add a clear overlaminate on the cabin side to protect the white layer.
 
 ## 12. Open items affecting print
-Vector logo · production domain (affects QR size) · Arabic tagline (only English is approved) · legal check of rear-window sticker rules in Egypt · printer ICC/spot names. See PENDING_DECISIONS.md.
+Vector logo · production domain (affects QR size) · Arabic tagline (only English is approved) · legal check of rear-window sticker rules in Egypt · printer ICC/spot names. See the open items in the README of the delivery.

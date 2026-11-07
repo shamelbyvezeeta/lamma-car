@@ -3,7 +3,7 @@
 const sharp = require('sharp');
 const path = require('path');
 const SRC = path.join(__dirname, '..', 'assets', 'brand', 'Lamma_Car_Motion_Logo.original.png');
-const OUT = path.join(__dirname, '..', 'public', 'brand');
+const OUT = path.join(__dirname, '..', 'web', 'brand');
 
 async function whiteToAlpha(input) {
   const { data, info } = await sharp(input).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
