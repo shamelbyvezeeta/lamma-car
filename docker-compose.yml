@@ -1,0 +1,25 @@
+# Local / single-server deployment. For production put a TLS-terminating reverse proxy in front
+# (Caddy, nginx, a cloud load balancer) and use managed, backed-up PostgreSQL where possible.
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: lamma_car
+      POSTGRES_USER: lamma_app
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    volumes: [ "pgdata:/var/lib/postgresql/data" ]
+    healthcheck: { test: ["CMD-SHELL", "pg_isready -U lamma_app -d lamma_car"], interval: 5s, retries: 10 }
+    restart: unless-stopped
+  app:
+    build: .
+    depends_on: { db: { condition: service_healthy } }
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://lamma_app:${POSTGRES_PASSWORD}@db:5432/lamma_car
+      DATABASE_SSL: "false"
+    ports: [ "127.0.0.1:3000:3000" ]
+    volumes: [ "photos:/var/lib/lamma-car/storage" ]
+    restart: unless-stopped
+volumes:
+  pgdata: {}
+  photos: {}
