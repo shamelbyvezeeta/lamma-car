@@ -1,0 +1,42 @@
+{% extends "layouts/admin.njk" %}
+{% from "partials/icons.njk" import icon %}
+{% from "partials/macros.njk" import badge, sortLink, pager, empty %}
+{% block title %}{{ t('nav.qr') }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{{ t('nav.qr') }}</h1><p>{{ t('qr.subtitle') }}</p></div>
+  <div class="actions">{% if can('batches.create') %}<a class="btn btn-primary" href="/admin/batches/new">{{ icon('plus') }} {{ t('batches.new') }}</a>{% endif %}</div>
+</div>
+<nav class="actions" style="margin-bottom:1rem" aria-label="{{ t('fields.status') }}">
+  <a class="btn btn-sm {{ 'btn-dark' if not query.status }}" href="/admin/qr">{{ t('common.all') }}</a>
+  {% for s in statuses %}<a class="btn btn-sm {{ 'btn-dark' if query.status == s }}" href="?status={{ s }}{% if query.q %}&q={{ query.q | urlencode }}{% endif %}">{{ t('qr_status.' + s) }} <span class="num muted">{{ fmt.number(counts[s]) }}</span></a>{% endfor %}
+</nav>
+<section class="card">
+  <form class="toolbar" method="get" role="search">
+    {% if query.status %}<input type="hidden" name="status" value="{{ query.status }}">{% endif %}
+    <div class="search">{{ icon('search') }}<input type="search" name="q" value="{{ query.q or '' }}" placeholder="{{ t('qr.search_placeholder') }}" aria-label="{{ t('common.search') }}"></div>
+    <button class="btn" type="submit">{{ t('common.search') }}</button>
+  </form>
+  {% if list.rows.length %}
+  <div class="table-wrap"><table class="table table-cards">
+    <thead><tr>
+      <th>{{ sortLink('serial', t('fields.serial'), list, query) }}</th>
+      <th>{{ sortLink('status', t('fields.status'), list, query) }}</th>
+      <th>{{ t('fields.batch') }}</th>
+      <th>{{ t('fields.assigned_to') }}</th>
+      <th>{{ sortLink('activated', t('fields.activated_at'), list, query) }}</th>
+    </tr></thead>
+    <tbody>{% for q in list.rows %}
+      <tr>
+        <td><a class="primary num" href="/admin/qr/{{ q.id }}">{{ q.serial_no | serial }}</a><span class="sub mono">{{ q.public_code }}</span></td>
+        <td>{{ badge(q.status, t('qr_status.' + q.status)) }}</td>
+        <td data-hide-mobile><a href="/admin/batches/{{ q.batch_id }}">{{ q.batch_ref }}</a></td>
+        <td data-hide-mobile>{% if q.customer_id %}<a href="/admin/customers/{{ q.customer_id }}">{{ q.customer_name }}</a><span class="sub"><a href="/admin/vehicles/{{ q.vehicle_id }}">{{ q.make }} {{ q.model }} · {{ q.vehicle_ref }}</a></span>{% else %}<span class="muted">—</span>{% endif %}</td>
+        <td class="num" data-hide-mobile>{{ fmt.date(q.activated_at) }}</td>
+      </tr>{% endfor %}
+    </tbody>
+  </table></div>
+  {{ pager(list.pager, query, t, fmt) }}
+  {% else %}{{ empty(t('qr.empty_title'), t('common.empty_filtered') if (query.q or query.status) else t('qr.empty_text'), 'qr') }}{% endif %}
+</section>
+{% endblock %}

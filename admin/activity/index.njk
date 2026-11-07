@@ -1,0 +1,29 @@
+{% extends "layouts/admin.njk" %}
+{% from "partials/icons.njk" import icon %}
+{% from "partials/macros.njk" import pager, empty %}
+{% block title %}{{ t('nav.activity') }}{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>{{ t('nav.activity') }}</h1><p>{{ t('activity.subtitle') }}</p></div></div>
+<section class="card">
+  <form class="toolbar" method="get" data-autosubmit role="search">
+    <div class="search">{{ icon('search') }}<input type="search" name="q" value="{{ query.q or '' }}" placeholder="{{ t('activity.search_placeholder') }}" aria-label="{{ t('common.search') }}"></div>
+    <select name="action" aria-label="{{ t('activity.action') }}"><option value="">{{ t('activity.all_actions') }}</option>{% for a in actionGroups %}<option value="{{ a }}"{% if query.action == a %} selected{% endif %}>{{ t('activity.groups.' + a) }}</option>{% endfor %}</select>
+    <input type="date" name="from" value="{{ query.from or '' }}" aria-label="{{ t('common.from') }}"><input type="date" name="to" value="{{ query.to or '' }}" aria-label="{{ t('common.to') }}">
+    <button class="btn" type="submit">{{ t('common.search') }}</button>
+  </form>
+  {% if rows.length %}
+  <div class="table-wrap"><table class="table table-cards">
+    <thead><tr><th>{{ t('activity.when') }}</th><th>{{ t('activity.who') }}</th><th>{{ t('activity.action') }}</th><th>{{ t('activity.details') }}</th></tr></thead>
+    <tbody>{% for a in rows %}
+      <tr>
+        <td class="num nowrap">{{ fmt.dateTime(a.created_at) }}</td>
+        <td>{{ a.actor_name or a.actor_label or t('common.system') }}<span class="sub ltr">{{ a.ip or '' }}</span></td>
+        <td><strong>{{ t('audit.' + a.action) }}</strong><span class="sub mono">{{ a.action }}{% if a.entity_type %} · {{ a.entity_type }}{% endif %}</span></td>
+        <td data-hide-mobile><code class="mono small" style="white-space:pre-wrap;word-break:break-word;color:var(--ink-2)">{{ a.details | dump | truncate(220) }}</code></td>
+      </tr>{% endfor %}
+    </tbody>
+  </table></div>
+  {{ pager(pager, query, t, fmt) }}
+  {% else %}{{ empty(t('activity.empty'), '', 'activity') }}{% endif %}
+</section>
+{% endblock %}

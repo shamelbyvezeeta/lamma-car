@@ -1,0 +1,31 @@
+{% extends "layouts/admin.njk" %}
+{% from "partials/icons.njk" import icon %}
+{% from "partials/macros.njk" import badge %}
+{% block title %}{{ t('nav.users') }}{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>{{ t('nav.users') }}</h1><p>{{ t('users.subtitle') }}</p></div><div class="actions"><a class="btn btn-primary" href="/admin/users/new">{{ icon('plus') }} {{ t('users.new') }}</a></div></div>
+<section class="card">
+  <div class="table-wrap"><table class="table table-cards">
+    <thead><tr><th>{{ t('fields.name') }}</th><th>{{ t('fields.role') }}</th><th>{{ t('fields.status') }}</th><th>{{ t('users.last_login') }}</th><th></th></tr></thead>
+    <tbody>{% for u in users %}
+      <tr>
+        <td><strong>{{ u.full_name }}</strong>{% if u.id == user.id %} <span class="muted small">({{ t('users.you') }})</span>{% endif %}<span class="sub">{{ u.email }}</span></td>
+        <td>{{ badge('plain', t('roles.' + u.role), 'badge-plain') }}</td>
+        <td>{{ badge('active' if u.is_active else 'deactivated', t('users.active') if u.is_active else t('users.inactive')) }}{% if u.must_change_password %}<span class="sub">{{ t('users.must_change') }}</span>{% endif %}</td>
+        <td class="num" data-hide-mobile>{{ fmt.dateTime(u.last_login_at) }}</td>
+        <td class="end"><a class="btn btn-sm" href="/admin/users/{{ u.id }}/edit">{{ t('common.edit') }}</a></td>
+      </tr>{% endfor %}
+    </tbody>
+  </table></div>
+</section>
+<section class="card card-pad" style="margin-top:1.1rem">
+  <h2 class="section-title">{{ t('users.permissions_title') }}</h2>
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th>{{ t('users.permission') }}</th><th>{{ t('roles.super_admin') }}</th><th>{{ t('roles.admin') }}</th><th>{{ t('roles.sales_operator') }}</th></tr></thead>
+    <tbody>{% for row in [['perm.customers', 1,1,1], ['perm.privacy',1,1,1], ['perm.assign',1,1,1], ['perm.activate',1,1,0], ['perm.batches',1,1,0], ['perm.sales_create',1,1,1], ['perm.sales_edit',1,1,0], ['perm.reports',1,1,0], ['perm.logs',1,1,0], ['perm.users',1,0,0], ['perm.settings',1,0,0]] %}
+      <tr><td>{{ t(row[0]) }}</td>{% for c in [row[1], row[2], row[3]] %}<td>{{ '✓' if c else '—' }}</td>{% endfor %}</tr>
+    {% endfor %}</tbody>
+  </table></div>
+  <p class="hint" style="margin:.7rem 0 0">{{ t('users.permissions_note') }}</p>
+</section>
+{% endblock %}

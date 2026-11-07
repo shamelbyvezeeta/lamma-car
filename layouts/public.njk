@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="{{ locale }}" dir="{{ dir }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FDF6EC">
+<meta name="robots" content="{% block robots %}noindex, nofollow{% endblock %}">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<title>{% block title %}Lamma Car{% endblock %}</title>
+<meta name="description" content="{{ t('public.meta_description') }}">
+<link rel="icon" type="image/png" href="/static/brand/favicon-48.png">
+<link rel="apple-touch-icon" href="/static/brand/apple-touch-icon.png">
+<link rel="preload" href="/static/fonts/{{ 'alexandria-arabic-400-normal' if locale == 'ar' else 'manrope-latin-400-normal' }}.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/static/css/base.css?v={{ assetVersion }}">
+<link rel="stylesheet" href="/static/css/public.css?v={{ assetVersion }}">
+</head>
+<body class="pub">
+<header class="pub-top">
+  <a href="/"><img src="/static/brand/lamma-car-wordmark.png" alt="Lamma Car" width="119" height="34"></a>
+  <a class="lang" href="{{ switchLangUrl }}" lang="{{ 'en' if locale == 'ar' else 'ar' }}" hreflang="{{ 'en' if locale == 'ar' else 'ar' }}">{{ 'English' if locale == 'ar' else 'العربية' }}</a>
+</header>
+<main class="pub-main">{% block content %}{% endblock %}</main>
+<footer class="pub-foot">
+  <img src="/static/brand/lamma-mark.png" alt="" width="29" height="26">
+  <div class="tag" lang="en" dir="ltr">Find it. Sell it. Easy.</div>
+  <div>{{ t('public.footer') }}</div>
+</footer>
+</body>
+</html>

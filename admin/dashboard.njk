@@ -1,0 +1,102 @@
+{% extends "layouts/admin.njk" %}
+{% from "partials/icons.njk" import icon %}
+{% from "partials/macros.njk" import badge, empty %}
+{% block title %}{{ t('nav.dashboard') }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{{ t('dashboard.greeting', { name: user.full_name.split(' ')[0] }) }}</h1><p>{{ t('dashboard.subtitle') }}</p></div>
+  <div class="actions">
+    {% if can('customers.create') %}<a class="btn" href="/admin/customers/new">{{ icon('plus') }} {{ t('customers.new') }}</a>{% endif %}
+    {% if can('sales.create') %}<a class="btn btn-primary" href="/admin/sales/new">{{ icon('receipt') }} {{ t('sales.new') }}</a>{% endif %}
+  </div>
+</div>
+
+<section class="kpis" aria-label="{{ t('dashboard.kpis') }}">
+  <div class="kpi dark">
+    <div class="k-label"><i></i>{{ t('dashboard.revenue') }}</div>
+    {% if d.sales.revenue.length %}
+      <div class="k-value">{{ fmt.money(d.sales.revenue[0].revenue, d.sales.revenue[0].currency) }}</div>
+      <div class="k-sub">{{ t('dashboard.this_month') }}: {{ fmt.money(d.sales.revenue[0].month_revenue or 0, d.sales.revenue[0].currency) }}{% for r in d.sales.revenue %}{% if not loop.first %} · {{ fmt.money(r.revenue, r.currency) }}{% endif %}{% endfor %}</div>
+    {% else %}
+      <div class="k-value">{{ fmt.money(0, d.currency) }}</div><div class="k-sub">{{ t('dashboard.no_paid_sales') }}</div>
+    {% endif %}
+  </div>
+  <div class="kpi"><div class="k-label"><i></i>{{ t('dashboard.total_sales') }}</div><div class="k-value">{{ fmt.number(d.sales.total_sales) }}</div><div class="k-sub">{{ t('dashboard.paid_pending', { paid: fmt.number(d.sales.paid_sales), pending: fmt.number(d.sales.pending_sales) }) }}</div></div>
+  <div class="kpi"><div class="k-label"><i style="background:#2E9E6A"></i>{{ t('dashboard.active_qr') }}</div><div class="k-value">{{ fmt.number(d.qr.active) }}</div><div class="k-sub">{{ t('dashboard.awaiting_activation', { n: fmt.number(d.awaiting_activation) }) }}</div></div>
+  <div class="kpi"><div class="k-label"><i style="background:var(--lavender)"></i>{{ t('dashboard.available_qr') }}</div><div class="k-value">{{ fmt.number(d.qr.available) }}</div><div class="k-sub">{{ t('dashboard.not_released', { n: fmt.number(d.qr.generated) }) }}</div></div>
+</section>
+
+<div class="grid grid-main">
+  <div class="stack">
+    <section class="card">
+      <div class="card-head"><h2>{{ t('dashboard.sales_30d') }}</h2><a class="btn btn-ghost btn-sm" href="/admin/sales">{{ t('common.view_all') }}</a></div>
+      <div class="card-body">
+        {% set n = d.series.length %}
+        <svg class="chart" direction="ltr" viewBox="0 0 600 170" preserveAspectRatio="none" role="img" aria-label="{{ t('dashboard.sales_30d') }}">
+          <line class="axis" x1="0" y1="150" x2="600" y2="150"/>
+          {% for s in d.series %}
+            {% set h = (s.sales / maxSeries) * 128 %}
+            {% set x = loop.index0 * (600 / n) + 3 %}
+            <rect class="bar{% if loop.last %} today{% endif %}" x="{{ x }}" y="{{ 150 - h }}" width="{{ 600 / n - 6 }}" height="{{ h if h > 0 else 0 }}" rx="3"><title>{{ s.day }}: {{ s.sales }}</title></rect>
+            {% if loop.first or loop.index0 == 15 %}<text x="{{ x }}" y="166">{{ s.day | replace('-', '/') }}</text>{% elif loop.last %}<text x="600" y="166" text-anchor="end">{{ s.day | replace('-', '/') }}</text>{% endif %}
+          {% endfor %}
+          <text x="0" y="12">{{ t('dashboard.max') }}: {{ maxSeries }}</text>
+        </svg>
+        {% if d.sales.total_sales == 0 %}<p class="muted small" style="margin:.4rem 0 0">{{ t('dashboard.no_sales_yet') }}</p>{% endif %}
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h2>{{ t('dashboard.batch_performance') }}</h2><a class="btn btn-ghost btn-sm" href="/admin/batches">{{ t('common.view_all') }}</a></div>
+      {% if d.batches.length %}
+      <div class="table-wrap"><table class="table">
+        <thead><tr><th>{{ t('fields.batch') }}</th><th class="end">{{ t('fields.quantity') }}</th><th class="end">{{ t('qr_status.available') }}</th><th class="end">{{ t('qr_status.assigned') }}</th><th class="end">{{ t('qr_status.active') }}</th><th class="end">{{ t('fields.activation_rate') }}</th></tr></thead>
+        <tbody>
+        {% for b in d.batches %}
+          <tr>
+            <td><a class="primary" href="/admin/batches/{{ b.id }}">{{ b.batch_ref }}</a><span class="sub">{{ b.name }}</span></td>
+            <td class="end num">{{ fmt.number(b.quantity) }}</td>
+            <td class="end num">{{ fmt.number(b.available) }}</td>
+            <td class="end num">{{ fmt.number(b.assigned) }}</td>
+            <td class="end num">{{ fmt.number(b.active) }}</td>
+            <td class="end num">{{ fmt.number((b.ever_activated / b.quantity) * 100, { maximumFractionDigits: 1 }) }}%</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table></div>
+      {% else %}{{ empty(t('batches.empty_title'), t('batches.empty_text'), 'layers') }}{% endif %}
+    </section>
+  </div>
+
+  <div class="stack">
+    <section class="card card-pad">
+      <h2 class="section-title">{{ t('dashboard.sticker_status') }}</h2>
+      {% set total = d.qr.generated + d.qr.available + d.qr.assigned + d.qr.active + d.qr.suspended + d.qr.deactivated %}
+      <div class="k-value num" style="font-size:1.6rem;font-weight:800">{{ fmt.number(total) }} <span class="muted small" style="font-weight:600">{{ t('dashboard.codes_total') }}</span></div>
+      <div class="dist" style="margin-top:.8rem" role="img" aria-label="{{ t('dashboard.sticker_status') }}">
+        {% for s in ['generated','available','assigned','active','suspended','deactivated'] %}{% if total and d.qr[s] %}<span class="s-{{ s }}" style="width:{{ (d.qr[s] / total) * 100 }}%"></span>{% endif %}{% endfor %}
+      </div>
+      <div class="legend">
+        {% for s, c in { generated: '#B6B9C2', available: '#9274D2', assigned: '#E7A93B', active: '#2E9E6A', suspended: '#FE764F', deactivated: '#5B5E68' } %}
+          <span><i style="background:{{ c }}"></i>{{ t('qr_status.' + s) }} <strong class="num">{{ fmt.number(d.qr[s]) }}</strong></span>
+        {% endfor %}
+      </div>
+    </section>
+    <section class="card card-pad">
+      <div class="grid grid-2" style="gap:.8rem">
+        <div><div class="muted small" style="font-weight:700">{{ t('dashboard.customers') }}</div><div style="font-size:1.5rem;font-weight:800" class="num">{{ fmt.number(d.customers) }}</div></div>
+        <div><div class="muted small" style="font-weight:700">{{ t('dashboard.vehicles') }}</div><div style="font-size:1.5rem;font-weight:800" class="num">{{ fmt.number(d.vehicles) }}</div></div>
+      </div>
+      {% if d.privacy_not_set %}<div class="alert alert-warn" style="margin:1rem 0 0">{{ icon('lock') }}<div>{{ t('dashboard.privacy_not_set', { n: d.privacy_not_set }) }} <a href="/admin/customers?visibility=not_set">{{ t('common.review') }}</a></div></div>{% endif %}
+    </section>
+    <section class="card">
+      <div class="card-head"><h2>{{ t('dashboard.recent_activity') }}</h2>{% if can('logs.view') %}<a class="btn btn-ghost btn-sm" href="/admin/activity">{{ t('common.view_all') }}</a>{% endif %}</div>
+      <div class="card-body">
+        {% if d.recent.length %}
+        <ul class="timeline">{% for a in d.recent %}<li><strong>{{ t('audit.' + a.action) }}</strong> · {{ a.actor_name or a.actor_label }}<span class="when">{{ fmt.dateTime(a.created_at) }}</span></li>{% endfor %}</ul>
+        {% else %}<p class="muted small" style="margin:0">{{ t('dashboard.no_activity') }}</p>{% endif %}
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}

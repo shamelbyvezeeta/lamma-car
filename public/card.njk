@@ -1,0 +1,70 @@
+{% extends "layouts/public.njk" %}
+{% from "partials/icons.njk" import icon %}
+{% from "partials/macros.njk" import csrf, fieldError, badge %}
+{% block title %}{{ card.make }} {{ card.model }} {{ card.model_year }} · Lamma Car{% endblock %}
+{% block content %}
+<article class="vcard">
+  {% if card.has_photo %}
+    <div class="vphoto"><img src="/q/{{ card.code }}/photo" alt="{{ card.make }} {{ card.model }}" width="1600" height="1000" fetchpriority="high">
+  {% else %}
+    <div class="vphoto placeholder" aria-hidden="true">{{ icon('car') }}
+  {% endif %}
+    {% if card.listing_status == 'listed' %}<span class="vstatus">{{ badge('available', t('public.for_sale')) }}</span>{% elif card.listing_status == 'sold' %}<span class="vstatus">{{ badge('sold', t('public.sold')) }}</span>{% endif %}
+  </div>
+  <div class="vbody">
+    <h1>{{ card.make }} {{ card.model }}</h1>
+    <div class="chips">
+      <span class="chip num">{{ card.model_year }}</span>
+      <span class="chip"><span class="dot" aria-hidden="true"></span>{{ card.color }}</span>
+      {% if card.category %}<span class="chip">{{ t('category.' + card.category) }}</span>{% endif %}
+    </div>
+    {% if card.asking_price !== null and card.listing_status == 'listed' %}
+      <div class="price"><strong class="num">{{ fmt.money(card.asking_price, card.price_currency) }}</strong><span>{{ t('public.asking_price') }}</span></div>
+    {% endif %}
+    {% if card.transmission or card.fuel_type or card.mileage_km !== null %}
+    <div class="specs">
+      {% if card.mileage_km !== null %}<div class="spec"><small>{{ t('public.mileage') }}</small><b class="num">{{ fmt.number(card.mileage_km) }} {{ t('public.km') }}</b></div>{% endif %}
+      {% if card.transmission %}<div class="spec"><small>{{ t('fields.transmission') }}</small><b>{{ t('transmission.' + card.transmission) }}</b></div>{% endif %}
+      {% if card.fuel_type %}<div class="spec"><small>{{ t('fields.fuel_type') }}</small><b>{{ t('fuel.' + card.fuel_type) }}</b></div>{% endif %}
+    </div>
+    {% endif %}
+    {% if card.public_description %}<p class="desc" dir="auto">{{ card.public_description }}</p>{% endif %}
+  </div>
+
+  <section class="contact" id="contact" aria-labelledby="contact-title">
+    {% if card.public_phone %}
+      <h2 id="contact-title">{{ t('public.contact_owner') }}</h2>
+      <p>{{ t('public.call_hint') }}</p>
+      <a class="btn btn-primary" href="tel:{{ card.public_phone }}">{{ icon('phone') }} {{ t('public.call_owner') }}</a>
+      <span class="phone ltr num">{{ fmt.phone(card.public_phone) }}</span>
+    {% endif %}
+    {% if card.contact_requests %}
+      {% if card.public_phone %}<hr style="border:0;border-top:1px solid #3A3F4D;margin:18px 0">{% endif %}
+      <h2 id="{{ 'contact-title' if not card.public_phone else 'msg-title' }}">{{ t('public.send_message') }}</h2>
+      <p>{{ t('public.message_hint') }}</p>
+      {% if sent %}
+        <div class="sent" role="status">{{ icon('check') }}<span>{{ t('public.message_sent') }}</span></div>
+      {% else %}
+      <form method="post" action="/q/{{ card.code }}/contact" novalidate>
+        {{ csrf(csrfToken()) }}
+        <div class="hp" aria-hidden="true"><label>Website<input name="website" tabindex="-1" autocomplete="off"></label></div>
+        <div class="field{% if errors and errors.visitor_name %} has-error{% endif %}"><label for="vn">{{ t('public.your_name') }}</label><input id="vn" name="visitor_name" maxlength="80" required value="{{ form.visitor_name if form else '' }}" autocomplete="name">{{ fieldError(errors, 'visitor_name', t) }}</div>
+        <div class="field{% if errors and errors.visitor_phone %} has-error{% endif %}"><label for="vp">{{ t('public.your_phone') }}</label><input id="vp" name="visitor_phone" type="tel" maxlength="20" required value="{{ form.visitor_phone if form else '' }}" autocomplete="tel" inputmode="tel">{{ fieldError(errors, 'visitor_phone', t) }}</div>
+        <div class="field{% if errors and errors.message %} has-error{% endif %}"><label for="vm">{{ t('public.your_message') }}</label><textarea id="vm" name="message" maxlength="600" required>{{ form.message if form else '' }}</textarea>{{ fieldError(errors, 'message', t) }}</div>
+        <button class="btn btn-primary" type="submit">{{ icon('message') }} {{ t('public.send') }}</button>
+        <p class="small" style="margin:10px 0 0;color:#9DA1AD">{{ t('public.message_privacy') }}</p>
+      </form>
+      {% endif %}
+    {% endif %}
+    {% if not card.public_phone and not card.contact_requests %}
+      <div class="private">{{ icon('lock') }}<div><h2 id="contact-title">{{ t('public.private_title') }}</h2><p style="margin:0">{{ t('public.private_text') }}</p></div></div>
+      {% if card.support_phone or card.support_email %}
+        <div style="margin-top:14px;display:grid;gap:8px">
+          {% if card.support_phone %}<a class="btn" href="tel:{{ card.support_phone | replace(' ', '') }}">{{ icon('phone') }} {{ t('public.contact_lamma') }}</a>{% endif %}
+          {% if card.support_email %}<a class="btn" href="mailto:{{ card.support_email }}">{{ t('public.email_lamma') }}</a>{% endif %}
+        </div>
+      {% endif %}
+    {% endif %}
+  </section>
+</article>
+{% endblock %}

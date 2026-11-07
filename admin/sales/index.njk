@@ -1,0 +1,55 @@
+{% extends "layouts/admin.njk" %}
+{% from "partials/icons.njk" import icon %}
+{% from "partials/macros.njk" import badge, sortLink, pager, empty %}
+{% block title %}{{ t('nav.sales') }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{{ t('nav.sales') }}</h1><p>{{ t('sales.subtitle') }}</p></div>
+  <div class="actions">
+    {% if can('reports.export') %}<a class="btn" href="/admin/sales/export.csv?{% for k, v in query %}{% if v and k != 'page' %}{{ k }}={{ v | urlencode }}&{% endif %}{% endfor %}">{{ icon('download') }} {{ t('common.export_csv') }}</a>{% endif %}
+    {% if can('sales.create') %}<a class="btn btn-primary" href="/admin/sales/new">{{ icon('plus') }} {{ t('sales.new') }}</a>{% endif %}
+  </div>
+</div>
+<section class="card">
+  <form class="toolbar" method="get" data-autosubmit role="search">
+    <div class="search">{{ icon('search') }}<input type="search" name="q" value="{{ query.q or '' }}" placeholder="{{ t('sales.search_placeholder') }}" aria-label="{{ t('common.search') }}"></div>
+    <select name="status" aria-label="{{ t('fields.payment_status') }}"><option value="">{{ t('common.all_statuses') }}</option>{% for s in statuses %}<option value="{{ s }}"{% if query.status == s %} selected{% endif %}>{{ t('payment.' + s) }}</option>{% endfor %}</select>
+    <select name="channel" aria-label="{{ t('fields.channel') }}"><option value="">{{ t('sales.all_channels') }}</option>{% for c in channels %}<option value="{{ c.code }}"{% if query.channel == c.code %} selected{% endif %}>{{ c.name_ar if locale == 'ar' else c.name_en }}</option>{% endfor %}</select>
+    <label class="sr-only" for="from">{{ t('common.from') }}</label><input id="from" type="date" name="from" value="{{ query.from or '' }}" title="{{ t('common.from') }}">
+    <label class="sr-only" for="to">{{ t('common.to') }}</label><input id="to" type="date" name="to" value="{{ query.to or '' }}" title="{{ t('common.to') }}">
+    <button class="btn" type="submit">{{ t('common.search') }}</button>
+    {% if query.q or query.status or query.channel or query.from or query.to %}<a class="btn btn-ghost" href="/admin/sales">{{ t('common.clear') }}</a>{% endif %}
+  </form>
+  <div class="toolbar" style="background:var(--surface-2)">
+    <span class="muted small">{{ t('sales.filtered_total', { n: fmt.number(list.pager.total) }) }}</span>
+    <span class="spacer" style="flex:1"></span>
+    <strong class="small">{{ t('sales.paid_revenue') }}:</strong>
+    {% if list.paidByCurrency.length %}{% for r in list.paidByCurrency %}<span class="num" style="font-weight:800">{{ fmt.money(r.paid, r.currency) }}</span>{% endfor %}{% else %}<span class="num">—</span>{% endif %}
+  </div>
+  {% if list.rows.length %}
+  <div class="table-wrap"><table class="table table-cards">
+    <thead><tr>
+      <th>{{ sortLink('ref', t('fields.ref'), list, query) }}</th>
+      <th>{{ sortLink('date', t('fields.sale_date'), list, query) }}</th>
+      <th>{{ t('fields.customer') }}</th>
+      <th>{{ t('fields.sticker') }}</th>
+      <th class="end">{{ sortLink('amount', t('fields.amount'), list, query) }}</th>
+      <th>{{ t('fields.payment_status') }}</th>
+      <th>{{ t('fields.responsible') }}</th>
+    </tr></thead>
+    <tbody>{% for s in list.rows %}
+      <tr>
+        <td><a class="primary" href="/admin/sales/{{ s.id }}">{{ s.sale_ref }}</a><span class="sub">{{ s.channel_ar if locale == 'ar' else s.channel_en }}</span></td>
+        <td class="num" data-hide-mobile>{{ fmt.date(s.sale_date) }}</td>
+        <td data-hide-mobile>{{ s.customer_name }}<span class="sub">{{ s.make }} {{ s.model }} {{ s.model_year }}</span></td>
+        <td class="num" data-hide-mobile>{{ s.serial_no | serial }}<span class="sub">{{ s.batch_ref or '' }}</span></td>
+        <td class="end num" style="font-weight:700">{{ fmt.money(s.amount, s.currency) }}</td>
+        <td>{{ badge(s.payment_status, t('payment.' + s.payment_status)) }}</td>
+        <td data-hide-mobile>{{ s.responsible_name }}</td>
+      </tr>{% endfor %}
+    </tbody>
+  </table></div>
+  {{ pager(list.pager, query, t, fmt) }}
+  {% else %}{{ empty(t('sales.empty_title'), t('common.empty_filtered') if (query.q or query.status or query.channel or query.from or query.to) else t('sales.empty_text'), 'receipt') }}{% endif %}
+</section>
+{% endblock %}

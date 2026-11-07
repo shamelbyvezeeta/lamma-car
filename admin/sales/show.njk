@@ -1,0 +1,25 @@
+{% extends "layouts/admin.njk" %}
+{% from "partials/icons.njk" import icon %}
+{% from "partials/macros.njk" import badge %}
+{% block title %}{{ s.sale_ref }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><div class="crumbs"><a href="/admin/sales">{{ t('nav.sales') }}</a> / {{ s.sale_ref }}</div><h1 class="num">{{ fmt.money(s.amount, s.currency) }} {{ badge(s.payment_status, t('payment.' + s.payment_status)) }}</h1><p>{{ s.sale_ref }} · {{ fmt.date(s.sale_date) }}</p></div>
+  <div class="actions">{% if canEdit %}<a class="btn" href="/admin/sales/{{ s.id }}/edit">{{ icon('edit') }} {{ t('common.edit') }}</a>{% endif %}</div>
+</div>
+<section class="card card-pad" style="max-width:820px">
+  <dl class="props">
+    <dt>{{ t('fields.customer') }}</dt><dd><a href="/admin/customers/{{ s.customer_id }}">{{ s.customer_name }}</a> <span class="muted">{{ s.customer_ref }}</span></dd>
+    <dt>{{ t('fields.vehicle') }}</dt><dd><a href="/admin/vehicles/{{ s.vehicle_id }}">{{ s.make }} {{ s.model }} {{ s.model_year }}</a> <span class="muted">{{ s.vehicle_ref }}</span></dd>
+    <dt>{{ t('fields.sticker') }}</dt><dd>{% if s.qr_code_id %}<a class="num" href="/admin/qr/{{ s.qr_code_id }}">{{ s.serial_no | serial }}</a>{% else %}—{% endif %}</dd>
+    <dt>{{ t('fields.batch') }}</dt><dd>{% if s.batch_id %}<a href="/admin/batches/{{ s.batch_id }}">{{ s.batch_ref }}</a>{% else %}—{% endif %}</dd>
+    <dt>{{ t('fields.amount') }}</dt><dd class="num">{{ fmt.money(s.amount, s.currency) }}</dd>
+    <dt>{{ t('fields.payment_status') }}</dt><dd>{{ badge(s.payment_status, t('payment.' + s.payment_status)) }}</dd>
+    <dt>{{ t('fields.channel') }}</dt><dd>{{ s.channel_ar if locale == 'ar' else s.channel_en }}</dd>
+    <dt>{{ t('fields.responsible') }}</dt><dd>{{ s.responsible_name }}</dd>
+    <dt>{{ t('fields.notes') }}</dt><dd style="white-space:pre-wrap;font-weight:500">{{ s.notes or '—' }}</dd>
+    <dt>{{ t('fields.created_at') }}</dt><dd class="num">{{ fmt.dateTime(s.created_at) }}</dd>
+    <dt>{{ t('fields.updated_at') }}</dt><dd class="num">{{ fmt.dateTime(s.updated_at) }}</dd>
+  </dl>
+</section>
+{% endblock %}

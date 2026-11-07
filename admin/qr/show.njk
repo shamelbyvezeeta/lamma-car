@@ -1,0 +1,79 @@
+{% extends "layouts/admin.njk" %}
+{% from "partials/icons.njk" import icon %}
+{% from "partials/macros.njk" import csrf, badge, validationSummary, formError, fieldError %}
+{% block title %}{{ q.serial_no | serial }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="crumbs"><a href="/admin/qr">{{ t('nav.qr') }}</a> / <a href="/admin/batches/{{ q.batch_id }}">{{ q.batch_ref }}</a></div>
+    <h1 class="num">{{ q.serial_no | serial }} {{ badge(q.status, t('qr_status.' + q.status)) }}</h1>
+    <p>{{ t('qr.status_help.' + q.status) }}</p>
+  </div>
+  <div class="actions">
+    {% if q.status == 'active' %}<a class="btn" href="/q/{{ q.public_code }}" target="_blank" rel="noopener">{{ icon('eye') }} {{ t('qr.view_public_page') }}</a>{% endif %}
+  </div>
+</div>
+{{ validationSummary(errors, t) }}{{ formError(formErrorKey, formErrorParams, t) }}
+<div class="grid grid-main">
+  <div class="stack">
+    <section class="card card-pad">
+      <h2 class="section-title">{{ t('qr.identity') }}</h2>
+      <dl class="props">
+        <dt>{{ t('fields.serial') }}</dt><dd class="num">{{ q.serial_no | serial }}</dd>
+        <dt>{{ t('fields.public_code') }}</dt><dd class="mono">{{ q.public_code }}</dd>
+        <dt>{{ t('fields.qr_url') }}</dt><dd><span class="ltr mono">{{ url }}</span> <button type="button" class="btn btn-ghost btn-sm" data-copy="{{ url }}" data-copied="{{ t('common.copied') }}">{{ t('common.copy') }}</button></dd>
+        <dt>{{ t('fields.batch') }}</dt><dd><a href="/admin/batches/{{ q.batch_id }}">{{ q.batch_ref }}</a> <span class="muted">{{ q.batch_name }}</span></dd>
+        <dt>{{ t('fields.customer') }}</dt><dd>{% if q.customer_id %}<a href="/admin/customers/{{ q.customer_id }}">{{ q.customer_name }}</a> <span class="muted">{{ q.customer_ref }}</span>{% else %}—{% endif %}</dd>
+        <dt>{{ t('fields.vehicle') }}</dt><dd>{% if q.vehicle_id %}<a href="/admin/vehicles/{{ q.vehicle_id }}">{{ q.make }} {{ q.model }} {{ q.model_year }}</a> <span class="muted">{{ q.vehicle_ref }}</span>{% else %}—{% endif %}</dd>
+        <dt>{{ t('fields.created_at') }}</dt><dd class="num">{{ fmt.dateTime(q.created_at) }}</dd>
+        <dt>{{ t('fields.assigned_at') }}</dt><dd class="num">{{ fmt.dateTime(q.assigned_at) }}{% if q.assigned_by_name %} · {{ q.assigned_by_name }}{% endif %}</dd>
+        <dt>{{ t('fields.activated_at') }}</dt><dd class="num">{{ fmt.dateTime(q.activated_at) }}{% if q.activated_by_name %} · {{ q.activated_by_name }}{% endif %}</dd>
+        {% if q.status_reason %}<dt>{{ t('fields.reason') }}</dt><dd>{{ q.status_reason }}</dd>{% endif %}
+      </dl>
+    </section>
+    <section class="card">
+      <div class="card-head"><h2>{{ t('qr.history') }}</h2></div>
+      <div class="card-body">
+        <ul class="timeline">{% for hst in q.history %}
+          <li><strong>{{ t('qr_status.' + hst.from_status) if hst.from_status else '—' }} → {{ t('qr_status.' + hst.to_status) }}</strong>{% if hst.reason %} — {{ hst.reason }}{% endif %}<span class="when">{{ fmt.dateTime(hst.created_at) }} · {{ hst.actor_name or t('common.system') }}</span></li>
+        {% endfor %}</ul>
+      </div>
+    </section>
+  </div>
+  <div class="stack">
+    <section class="card card-pad">
+      <h2 class="section-title">{{ t('qr.actions') }}</h2>
+      {% if q.status in ['generated','available'] %}<p class="muted small" style="margin-top:0">{{ t('qr.assign_from_vehicle') }}</p>{% endif %}
+      {% if q.status in ['assigned','suspended'] and can('qr.activate') %}
+        <form method="post" action="/admin/qr/{{ q.id }}/activate" data-confirm="{{ t('qr.confirm_activate') }}" style="margin-bottom:1rem">{{ csrf(csrfToken()) }}<button class="btn btn-primary btn-block" type="submit">{{ icon('check') }} {{ t('qr.activate') if q.status == 'assigned' else t('qr.reactivate') }}</button></form>
+      {% endif %}
+      {% if q.status == 'active' and can('qr.suspend') %}
+        <form method="post" action="/admin/qr/{{ q.id }}/suspend" data-confirm="{{ t('qr.confirm_suspend') }}" data-danger novalidate style="margin-bottom:1rem">
+          {{ csrf(csrfToken()) }}
+          <div class="field{% if errors and errors.reason and reasonFor == 'suspend' %} has-error{% endif %}"><label for="r-s">{{ t('qr.suspend_reason') }}</label><input id="r-s" name="reason" maxlength="300" required value="{{ reasonForm.reason if reasonFor == 'suspend' else '' }}">{% if reasonFor == 'suspend' %}{{ fieldError(errors, 'reason', t) }}{% endif %}</div>
+          <button class="btn btn-block" type="submit">{{ icon('pause') }} {{ t('qr.suspend') }}</button>
+        </form>
+      {% endif %}
+      {% if q.status != 'deactivated' and can('qr.deactivate') %}
+        <form method="post" action="/admin/qr/{{ q.id }}/deactivate" data-confirm="{{ t('qr.confirm_deactivate') }}" data-danger novalidate>
+          {{ csrf(csrfToken()) }}
+          <div class="field{% if errors and errors.reason and reasonFor == 'deactivate' %} has-error{% endif %}"><label for="r-d">{{ t('qr.deactivate_reason') }}</label><input id="r-d" name="reason" maxlength="300" required value="{{ reasonForm.reason if reasonFor == 'deactivate' else '' }}">{% if reasonFor == 'deactivate' %}{{ fieldError(errors, 'reason', t) }}{% endif %}</div>
+          <button class="btn btn-danger btn-block" type="submit">{{ icon('ban') }} {{ t('qr.deactivate') }}</button>
+          <p class="hint" style="margin:.5rem 0 0">{{ t('qr.deactivate_help') }}</p>
+        </form>
+      {% endif %}
+      {% if q.status == 'deactivated' %}<p class="muted small" style="margin:0">{{ t('qr.deactivated_final') }}</p>{% endif %}
+      {% if not can('qr.activate') and q.status in ['assigned','active','suspended'] %}<p class="muted small">{{ t('qr.admin_only') }}</p>{% endif %}
+    </section>
+    {% if can('batches.pdf') and q.status != 'deactivated' %}
+    <section class="card card-pad">
+      <h2 class="section-title">{{ t('qr.reprint') }}</h2>
+      <p class="muted small" style="margin-top:0">{{ t('qr.reprint_help') }}</p>
+      <div class="actions">
+        {% for vnt in ['proof','print','white','cut'] %}<a class="btn btn-sm" href="/admin/qr/{{ q.id }}/sticker.pdf?variant={{ vnt }}">{{ icon('download') }} {{ t('pdf_variant.' + vnt) }}</a>{% endfor %}
+      </div>
+    </section>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

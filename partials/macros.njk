@@ -1,0 +1,65 @@
+{% from "partials/icons.njk" import icon %}
+
+{% macro csrf(token) %}<input type="hidden" name="_csrf" value="{{ token }}">{% endmacro %}
+
+{% macro badge(kind, label, extra='') %}<span class="badge badge-{{ kind }} {{ extra }}">{{ label }}</span>{% endmacro %}
+
+{% macro fieldError(errors, name, t) %}{% if errors and errors[name] %}<span class="field-error" id="err-{{ name }}">{{ t(errors[name]) }}</span>{% endif %}{% endmacro %}
+
+{% macro input(name, label, form, errors, t, type='text', required=false, hint='', attrs='', span=false) %}
+<div class="field{% if errors and errors[name] %} has-error{% endif %}{% if span %} span-2{% endif %}">
+  <label for="f-{{ name }}"{% if required %} class="req"{% endif %}>{{ label }}</label>
+  <input type="{{ type }}" id="f-{{ name }}" name="{{ name }}" value="{{ form[name] if form and form[name] !== null and form[name] !== undefined else '' }}"{% if required %} required{% endif %}{% if errors and errors[name] %} aria-invalid="true" aria-describedby="err-{{ name }}"{% endif %} {{ attrs | safe }}>
+  {% if hint %}<span class="hint">{{ hint }}</span>{% endif %}
+  {{ fieldError(errors, name, t) }}
+</div>
+{% endmacro %}
+
+{% macro textarea(name, label, form, errors, t, hint='', maxlength=600, span=true) %}
+<div class="field{% if errors and errors[name] %} has-error{% endif %}{% if span %} span-2{% endif %}">
+  <label for="f-{{ name }}">{{ label }}</label>
+  <textarea id="f-{{ name }}" name="{{ name }}" maxlength="{{ maxlength }}">{{ form[name] if form and form[name] else '' }}</textarea>
+  {% if hint %}<span class="hint">{{ hint }}</span>{% endif %}
+  {{ fieldError(errors, name, t) }}
+</div>
+{% endmacro %}
+
+{% macro select(name, label, options, form, errors, t, required=false, blank=false, span=false) %}
+<div class="field{% if errors and errors[name] %} has-error{% endif %}{% if span %} span-2{% endif %}">
+  <label for="f-{{ name }}"{% if required %} class="req"{% endif %}>{{ label }}</label>
+  {% set cur = form[name] if (form and form[name] !== undefined and form[name] !== null) else '' %}
+  <select id="f-{{ name }}" name="{{ name }}"{% if required %} required{% endif %}>
+    {% if blank %}<option value="">{{ blank }}</option>{% endif %}
+    {% for o in options %}<option value="{{ o.value }}"{% if (cur | string) == (o.value | string) %} selected{% endif %}>{{ o.label }}</option>{% endfor %}
+  </select>
+  {{ fieldError(errors, name, t) }}
+</div>
+{% endmacro %}
+
+{% macro sortLink(key, label, list, query) %}
+{%- set active = list.sort == key -%}
+{%- set nextDir = 'asc' if (active and list.dir == 'desc') else 'desc' -%}
+<a href="?{% for k, v in query %}{% if k != 'sort' and k != 'dir' and k != 'page' and v %}{{ k }}={{ v | urlencode }}&{% endif %}{% endfor %}sort={{ key }}&dir={{ nextDir }}"{% if active %} aria-sort="{{ 'ascending' if list.dir == 'asc' else 'descending' }}"{% endif %}>{{ label }}{% if active %} {{ '↑' if list.dir == 'asc' else '↓' }}{% endif %}</a>
+{%- endmacro %}
+
+{% macro pager(p, query, t, fmt) %}
+{% if p.total > 0 %}
+<nav class="pager" aria-label="{{ t('common.pagination') }}">
+  <span>{{ t('common.showing', { from: fmt.number(p.from), to: fmt.number(p.to), total: fmt.number(p.total) }) }}</span>
+  <div class="actions">
+    {% set base %}{% for k, v in query %}{% if k != 'page' and v %}{{ k }}={{ v | urlencode }}&{% endif %}{% endfor %}{% endset %}
+    <a class="btn btn-sm" href="?{{ base }}page={{ p.page - 1 }}" {% if p.page <= 1 %}aria-disabled="true" tabindex="-1"{% endif %} rel="prev">{{ t('common.previous') }}</a>
+    <span class="num">{{ fmt.number(p.page) }} / {{ fmt.number(p.pages) }}</span>
+    <a class="btn btn-sm" href="?{{ base }}page={{ p.page + 1 }}" {% if p.page >= p.pages %}aria-disabled="true" tabindex="-1"{% endif %} rel="next">{{ t('common.next') }}</a>
+  </div>
+</nav>
+{% endif %}
+{% endmacro %}
+
+{% macro empty(title, text, iconName='inbox') %}
+<div class="empty">{{ icon(iconName) }}<strong>{{ title }}</strong>{% if text %}<span>{{ text }}</span>{% endif %}</div>
+{% endmacro %}
+
+{% macro formError(key, params, t) %}{% if key %}<div class="alert alert-error" role="alert">{{ icon('alert') }}<div>{{ t(key, params) }}</div></div>{% endif %}{% endmacro %}
+
+{% macro validationSummary(errors, t) %}{% if errors and (errors | length) %}<div class="alert alert-error" role="alert">{{ icon('alert') }}<div>{{ t('errors.validation') }}</div></div>{% endif %}{% endmacro %}

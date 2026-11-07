@@ -1,0 +1,68 @@
+{% from "partials/icons.njk" import icon %}
+{% from "partials/macros.njk" import csrf %}
+<!doctype html>
+<html lang="{{ locale }}" dir="{{ dir }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>{% block title %}{{ t('app.admin') }}{% endblock %} · Lamma Car</title>
+<link rel="icon" type="image/png" href="/static/brand/favicon-48.png">
+<link rel="preload" href="/static/fonts/{{ 'alexandria-arabic-400-normal' if locale == 'ar' else 'manrope-latin-400-normal' }}.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/static/css/base.css?v={{ assetVersion }}">
+<link rel="stylesheet" href="/static/css/admin.css?v={{ assetVersion }}">
+</head>
+<body>
+<a class="sr-only" href="#main">{{ t('common.skip_to_content') }}</a>
+<div class="shell">
+  <aside class="sidebar" aria-label="{{ t('nav.main') }}">
+    <a class="brand" href="/admin"><img src="/static/brand/lamma-car-wordmark.png" alt="Lamma Car" width="154" height="44"></a>
+    <nav class="nav">
+      {% macro navItem(key, href, iconName, perm, count=0) %}
+        {% if can(perm) %}<a href="{{ href }}"{% if nav == key %} aria-current="page"{% endif %}>{{ icon(iconName) }}<span>{{ t('nav.' + key) }}</span>{% if count %}<span class="count num">{{ count }}</span>{% endif %}</a>{% endif %}
+      {% endmacro %}
+      {{ navItem('dashboard', '/admin', 'home', 'dashboard.view') }}
+      <div class="nav-label">{{ t('nav.group_operations') }}</div>
+      {{ navItem('customers', '/admin/customers', 'users', 'customers.view') }}
+      {{ navItem('vehicles', '/admin/vehicles', 'car', 'vehicles.view') }}
+      {{ navItem('qr', '/admin/qr', 'qr', 'qr.view') }}
+      {{ navItem('batches', '/admin/batches', 'layers', 'batches.view') }}
+      {{ navItem('sales', '/admin/sales', 'receipt', 'sales.view') }}
+      {{ navItem('contact', '/admin/contact-requests', 'inbox', 'contact.view', newContactCount) }}
+      {% if can('reports.view') or can('users.manage') or can('settings.manage') or can('logs.view') %}<div class="nav-label">{{ t('nav.group_admin') }}</div>{% endif %}
+      {{ navItem('reports', '/admin/reports', 'chart', 'reports.view') }}
+      {{ navItem('users', '/admin/users', 'shield', 'users.manage') }}
+      {{ navItem('settings', '/admin/settings', 'settings', 'settings.manage') }}
+      {{ navItem('activity', '/admin/activity', 'activity', 'logs.view') }}
+    </nav>
+    <div class="sidebar-foot">
+      <a class="me" href="/admin/account" style="text-decoration:none">
+        <span class="avatar" aria-hidden="true">{{ user.full_name[0] | upper }}</span>
+        <span><strong>{{ user.full_name }}</strong><span>{{ t('roles.' + user.role) }}</span></span>
+      </a>
+      <form method="post" action="/admin/logout">{{ csrf(csrfToken()) }}<button class="btn btn-ghost btn-sm btn-block" type="submit">{{ icon('logout') }} {{ t('auth.logout') }}</button></form>
+    </div>
+  </aside>
+  <div class="main">
+    <header class="topbar">
+      <button class="btn btn-ghost btn-sm menu-btn" type="button" data-nav-toggle aria-expanded="false" aria-label="{{ t('nav.menu') }}">{{ icon('menu') }}</button>
+      <div class="spacer"></div>
+      <a class="btn btn-sm" href="/admin/lang/{{ 'en' if locale == 'ar' else 'ar' }}?back={{ path | urlencode }}" lang="{{ 'en' if locale == 'ar' else 'ar' }}">{{ icon('globe') }} {{ 'English' if locale == 'ar' else 'العربية' }}</a>
+    </header>
+    <main class="content" id="main">
+      {% for f in flashes %}
+        <div class="alert alert-{{ 'success' if f.type == 'success' else ('error' if f.type == 'error' else 'info') }}" role="status">{{ icon('check' if f.type == 'success' else 'info') }}<div>{{ t(f.key, f.params) }}</div></div>
+      {% endfor %}
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</div>
+<dialog class="confirm" id="confirm-dialog" data-title="{{ t('confirm.title') }}" data-ok="{{ t('confirm.ok') }}">
+  <form method="dialog">
+    <div class="d-body"><h3 data-d-title></h3><p data-d-msg></p></div>
+    <div class="d-actions"><button class="btn" value="cancel">{{ t('common.cancel') }}</button><button class="btn btn-primary" value="ok" data-d-ok>{{ t('confirm.ok') }}</button></div>
+  </form>
+</dialog>
+<script src="/static/js/admin.js?v={{ assetVersion }}" defer></script>
+</body>
+</html>

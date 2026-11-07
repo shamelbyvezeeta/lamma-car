@@ -1,0 +1,40 @@
+{% from "partials/icons.njk" import icon %}
+{% from "partials/macros.njk" import csrf %}
+<!doctype html>
+<html lang="{{ locale }}" dir="{{ dir }}">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex">
+<title>{{ t('auth.sign_in') }} · Lamma Car</title>
+<link rel="icon" type="image/png" href="/static/brand/favicon-48.png">
+<link rel="stylesheet" href="/static/css/base.css?v={{ assetVersion }}"><link rel="stylesheet" href="/static/css/admin.css?v={{ assetVersion }}">
+</head>
+<body>
+<div class="login-wrap">
+  <section class="login-art" aria-hidden="true">
+    <img src="/static/brand/lamma-mark.png" alt="" width="72" height="64">
+    <div><h2>{{ t('auth.art_title') }}</h2><p>{{ t('auth.art_text') }}</p></div>
+    <span class="small">Find it. Sell it. Easy.</span>
+    <div class="ring"></div><div class="ring2"></div>
+  </section>
+  <main class="login-panel">
+    <div class="login-card">
+      <img class="logo" src="/static/brand/lamma-car-wordmark.png" alt="Lamma Car" width="224" height="64">
+      <h1>{{ t('auth.welcome') }}</h1>
+      <p class="muted" style="margin:0 0 1.4rem">{{ t('auth.subtitle') }}</p>
+      {% if errorKey %}<div class="alert alert-error" role="alert">{{ icon('alert') }}<div>{{ t(errorKey) }}</div></div>{% endif %}
+      <form method="post" action="/admin/login" novalidate>
+        {{ csrf(csrfToken()) }}
+        <input type="hidden" name="next" value="{{ next or '/admin' }}">
+        <div class="field"><label for="email">{{ t('fields.email') }}</label><input id="email" name="email" type="email" autocomplete="username" value="{{ email or '' }}" required autofocus></div>
+        <div class="field"><label for="password">{{ t('fields.password') }}</label><input id="password" name="password" type="password" autocomplete="current-password" required></div>
+        <button class="btn btn-primary btn-block" type="submit">{{ t('auth.sign_in') }}</button>
+      </form>
+      <p class="small muted" style="margin-top:1.4rem;display:flex;justify-content:space-between;gap:1rem">
+        <span>{{ t('auth.staff_only') }}</span>
+        <a href="?lang={{ 'en' if locale == 'ar' else 'ar' }}{% if next %}&next={{ next | urlencode }}{% endif %}">{{ 'English' if locale == 'ar' else 'العربية' }}</a>
+      </p>
+    </div>
+  </main>
+</div>
+</body>
+</html>

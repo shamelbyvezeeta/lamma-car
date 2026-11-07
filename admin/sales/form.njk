@@ -1,0 +1,66 @@
+{% extends "layouts/admin.njk" %}
+{% from "partials/icons.njk" import icon %}
+{% from "partials/macros.njk" import csrf, input, textarea, select, validationSummary, formError, fieldError %}
+{% block title %}{{ t('sales.new') if isNew else t('sales.edit') }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><div class="crumbs"><a href="/admin/sales">{{ t('nav.sales') }}</a>{% if not isNew %} / <a href="/admin/sales/{{ s.id }}">{{ s.sale_ref }}</a>{% endif %}</div><h1>{{ t('sales.new') if isNew else t('sales.edit') }}</h1></div>
+</div>
+{{ validationSummary(errors, t) }}{{ formError(formErrorKey, formErrorParams, t) }}
+{% if limited %}<div class="alert alert-info">{{ icon('info') }}<div>{{ t('sales.limited_edit') }}</div></div>{% endif %}
+{% set chOpts = [] %}
+<form class="card" method="post" action="{{ '/admin/sales' if isNew else '/admin/sales/' + s.id }}" novalidate style="max-width:900px" data-sale-form
+      data-pick-customer="{{ t('sales.pick_customer_first') }}" data-pick-vehicle="{{ t('sales.pick_vehicle') }}" data-no-vehicles="{{ t('sales.no_vehicles') }}"
+      data-no-sticker="{{ t('sales.no_sticker') }}" data-no-results="{{ t('common.no_results') }}"
+      data-stassigned="{{ t('qr_status.assigned') }}" data-stactive="{{ t('qr_status.active') }}" data-stsuspended="{{ t('qr_status.suspended') }}">
+  {{ csrf(csrfToken()) }}
+  {% if isNew %}<input type="hidden" name="request_token" value="{{ form.request_token }}">{% endif %}
+  <div class="card-body">
+    <h2 class="section-title">{{ t('sales.section_link') }}</h2>
+    {% if isNew %}
+    <div class="form-grid">
+      <div class="field span-2{% if errors and errors.customer_id %} has-error{% endif %}" style="position:relative">
+        <label for="customer_search" class="req">{{ t('fields.customer') }}</label>
+        <input type="hidden" id="customer_id" name="customer_id" value="{{ form.customer_id or '' }}">
+        <input type="search" id="customer_search" autocomplete="off" placeholder="{{ t('sales.customer_search') }}" value="{{ (customer.full_name + ' · ' + customer.customer_ref) if customer else '' }}">
+        <div id="customer_results" class="picker" hidden></div>
+        {{ fieldError(errors, 'customer_id', t) }}
+        <noscript><span class="hint">{{ t('sales.noscript') }}</span></noscript>
+      </div>
+      <div class="field{% if errors and errors.vehicle_id %} has-error{% endif %}">
+        <label for="vehicle_id" class="req">{{ t('fields.vehicle') }}</label>
+        <select id="vehicle_id" name="vehicle_id" data-initial="{{ form.vehicle_id or '' }}">
+          {% if customer %}{% for v in customer.vehicles %}<option value="{{ v.id }}"{% if form.vehicle_id == v.id %} selected{% endif %} data-qr="{% if v.live_qr %}{{ { id: v.live_qr.id, serial: (v.live_qr.serial_no | serial), status: v.live_qr.status } | json }}{% endif %}">{{ v.vehicle_ref }} — {{ v.make }} {{ v.model }} {{ v.model_year }}</option>{% endfor %}{% else %}<option value="">{{ t('sales.pick_customer_first') }}</option>{% endif %}
+        </select>
+        {{ fieldError(errors, 'vehicle_id', t) }}
+      </div>
+      <div class="field">
+        <label for="qr_code_id">{{ t('fields.sticker') }}</label>
+        <select id="qr_code_id" name="qr_code_id" data-initial="{{ form.qr_code_id or '' }}"><option value="">{{ t('sales.no_sticker') }}</option></select>
+        <span class="hint">{{ t('sales.sticker_hint') }}</span>
+      </div>
+    </div>
+    {% else %}
+      <dl class="props" style="margin-bottom:1rem"><dt>{{ t('fields.customer') }}</dt><dd>{{ s.customer_name }} <span class="muted">{{ s.customer_ref }}</span></dd><dt>{{ t('fields.vehicle') }}</dt><dd>{{ s.make }} {{ s.model }} {{ s.model_year }} <span class="muted">{{ s.vehicle_ref }}</span></dd><dt>{{ t('fields.sticker') }}</dt><dd class="num">{{ s.serial_no | serial }}</dd></dl>
+      {% if not limited %}<input type="hidden" name="qr_code_id" value="{{ s.qr_code_id or '' }}">{% endif %}
+    {% endif %}
+    <hr class="divider">
+    <h2 class="section-title">{{ t('sales.section_payment') }}</h2>
+    <div class="form-grid">
+      {% if not limited %}
+      {{ input('sale_date', t('fields.sale_date'), form, errors, t, 'date', true) }}
+      {% set chOpts = [] %}
+      <div class="field{% if errors and errors.channel %} has-error{% endif %}"><label for="f-channel" class="req">{{ t('fields.channel') }}</label><select id="f-channel" name="channel">{% for c in channels %}<option value="{{ c.code }}"{% if form.channel == c.code %} selected{% endif %}>{{ c.name_ar if locale == 'ar' else c.name_en }}</option>{% endfor %}</select>{{ fieldError(errors, 'channel', t) }}</div>
+      {{ input('amount', t('fields.amount'), form, errors, t, 'text', true, '', 'inputmode="decimal" class="input-ltr"') }}
+      {{ input('currency', t('fields.currency'), form, errors, t, 'text', true, t('sales.currency_hint', { c: defaultCurrency }), 'maxlength="3" class="input-ltr"') }}
+      {% endif %}
+      {{ select('payment_status', t('fields.payment_status'), options(t, 'payment', ['pending','paid','refunded','cancelled']), form, errors, t, true) }}
+      {% if not limited and can('sales.edit_full') %}
+      <div class="field"><label for="f-responsible_user_id">{{ t('fields.responsible') }}</label><select id="f-responsible_user_id" name="responsible_user_id">{% for u in staff %}<option value="{{ u.id }}"{% if (form.responsible_user_id or user.id) == u.id %} selected{% endif %}>{{ u.full_name }}</option>{% endfor %}</select></div>
+      {% endif %}
+      {{ textarea('notes', t('fields.notes'), form, errors, t, '', 1000) }}
+    </div>
+  </div>
+  <div class="form-actions"><a class="btn btn-ghost" href="{{ '/admin/sales' if isNew else '/admin/sales/' + s.id }}">{{ t('common.cancel') }}</a><button class="btn btn-primary" type="submit">{{ t('sales.record') if isNew else t('common.save') }}</button></div>
+</form>
+{% endblock %}

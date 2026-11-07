@@ -1,0 +1,11 @@
+{% extends "layouts/public.njk" %}
+{% from "partials/icons.njk" import icon %}
+{% block title %}{{ t('errors.title') }} · Lamma Car{% endblock %}
+{% block content %}
+<article class="vcard state">
+  <div class="ico">{{ icon('alert') }}</div>
+  <h1>{{ t(messageKey, params) }}</h1>
+  <p class="num">{{ t('errors.code', { status: status }) }}</p>
+  <div class="support"><a class="btn" href="/">{{ t('public.go_home') }}</a></div>
+</article>
+{% endblock %}

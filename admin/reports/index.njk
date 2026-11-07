@@ -1,0 +1,16 @@
+{% extends "layouts/admin.njk" %}
+{% from "partials/icons.njk" import icon %}
+{% block title %}{{ t('nav.reports') }}{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>{{ t('nav.reports') }}</h1><p>{{ t('reports.subtitle') }}</p></div></div>
+<div class="grid grid-3">
+  {% for r in reports %}
+  <section class="card card-pad">
+    <div style="display:flex;gap:.7rem;align-items:center;margin-bottom:.5rem">{{ icon('file') }}<h2 style="font-size:1.05rem">{{ t('reports.' + r) }}</h2></div>
+    <p class="muted small" style="margin:0 0 1rem;min-height:3em">{{ t('reports.desc.' + r) }}</p>
+    {% if can('reports.export') %}<div class="actions"><a class="btn btn-sm" href="/admin/reports/{{ r }}.csv">{{ icon('download') }} CSV</a><a class="btn btn-sm btn-dark" href="/admin/reports/{{ r }}.pdf">{{ icon('download') }} PDF</a></div>{% endif %}
+  </section>
+  {% endfor %}
+</div>
+<div class="alert alert-info" style="margin-top:1.2rem">{{ icon('lock') }}<div>{{ t('reports.privacy_note') }}</div></div>
+{% endblock %}

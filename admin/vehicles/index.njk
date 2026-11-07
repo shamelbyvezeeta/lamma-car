@@ -1,0 +1,38 @@
+{% extends "layouts/admin.njk" %}
+{% from "partials/icons.njk" import icon %}
+{% from "partials/macros.njk" import badge, sortLink, pager, empty %}
+{% block title %}{{ t('nav.vehicles') }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{{ t('nav.vehicles') }}</h1><p>{{ t('vehicles.subtitle') }}</p></div>
+</div>
+<section class="card">
+  <form class="toolbar" method="get" data-autosubmit role="search">
+    <div class="search">{{ icon('search') }}<input type="search" name="q" value="{{ query.q or '' }}" placeholder="{{ t('vehicles.search_placeholder') }}" aria-label="{{ t('common.search') }}"></div>
+    <select name="listing" aria-label="{{ t('fields.listing_status') }}"><option value="">{{ t('vehicles.any_listing') }}</option>{% for s in ['unlisted','listed','sold'] %}<option value="{{ s }}"{% if query.listing == s %} selected{% endif %}>{{ t('listing.' + s) }}</option>{% endfor %}</select>
+    <select name="sticker" aria-label="{{ t('fields.sticker') }}"><option value="">{{ t('vehicles.any_sticker') }}</option><option value="live"{% if query.sticker == 'live' %} selected{% endif %}>{{ t('vehicles.with_sticker') }}</option><option value="none"{% if query.sticker == 'none' %} selected{% endif %}>{{ t('vehicles.without_sticker') }}</option></select>
+    <button class="btn" type="submit">{{ t('common.search') }}</button>
+  </form>
+  {% if list.rows.length %}
+  <div class="table-wrap"><table class="table table-cards">
+    <thead><tr>
+      <th>{{ sortLink('make', t('fields.vehicle'), list, query) }}</th>
+      <th>{{ t('fields.customer') }}</th>
+      <th>{{ sortLink('year', t('fields.model_year'), list, query) }}</th>
+      <th>{{ t('fields.listing_status') }}</th>
+      <th>{{ t('fields.sticker') }}</th>
+    </tr></thead>
+    <tbody>{% for v in list.rows %}
+      <tr>
+        <td><a class="primary" href="/admin/vehicles/{{ v.id }}">{{ v.make }} {{ v.model }}</a> {% if v.is_test_data %}{{ badge('test', t('common.test_data'), 'badge-plain') }}{% endif %}<span class="sub">{{ v.vehicle_ref }} · {{ v.color }} · {{ t('category.' + v.category) }}</span></td>
+        <td data-hide-mobile><a href="/admin/customers/{{ v.customer_id }}">{{ v.customer_name }}</a><span class="sub">{{ v.customer_ref }}</span></td>
+        <td class="num" data-hide-mobile>{{ v.model_year }}</td>
+        <td data-hide-mobile>{{ badge(v.listing_status, t('listing.' + v.listing_status)) }}</td>
+        <td>{% if v.live_qr %}<span class="num">{{ v.live_qr.serial_no | serial }}</span> {{ badge(v.live_qr.status, t('qr_status.' + v.live_qr.status)) }}{% else %}<span class="muted small">{{ t('vehicles.no_sticker') }}</span>{% endif %}</td>
+      </tr>{% endfor %}
+    </tbody>
+  </table></div>
+  {{ pager(list.pager, query, t, fmt) }}
+  {% else %}{{ empty(t('vehicles.empty_title'), t('common.empty_filtered') if (query.q or query.listing or query.sticker) else t('vehicles.empty_text'), 'car') }}{% endif %}
+</section>
+{% endblock %}

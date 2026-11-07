@@ -1,0 +1,19 @@
+{% extends "layouts/admin.njk" %}
+{% from "partials/icons.njk" import icon %}
+{% from "partials/macros.njk" import csrf, input, validationSummary, formError %}
+{% block title %}{{ t('nav.account') }}{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>{{ t('nav.account') }}</h1><p>{{ user.email }} · {{ t('roles.' + user.role) }}</p></div></div>
+{% if force %}<div class="alert alert-warn">{{ icon('lock') }}<div>{{ t('account.must_change') }}</div></div>{% endif %}
+{{ validationSummary(errors, t) }}{{ formError(formErrorKey, formErrorParams, t) }}
+<form class="card" method="post" action="/admin/account/password" novalidate style="max-width:560px">
+  {{ csrf(csrfToken()) }}
+  <div class="card-head"><h2>{{ t('account.change_password') }}</h2></div>
+  <div class="card-body">
+    {{ input('current_password', t('account.current_password'), {}, errors, t, 'password', true, '', 'autocomplete="current-password"') }}
+    {{ input('new_password', t('account.new_password'), {}, errors, t, 'password', true, t('users.temp_password_hint'), 'autocomplete="new-password" minlength="12"') }}
+    {{ input('confirm_password', t('account.confirm_password'), {}, errors, t, 'password', true, '', 'autocomplete="new-password"') }}
+  </div>
+  <div class="form-actions"><button class="btn btn-primary" type="submit">{{ t('account.update_password') }}</button></div>
+</form>
+{% endblock %}

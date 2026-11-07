@@ -1,0 +1,42 @@
+{% extends "layouts/admin.njk" %}
+{% from "partials/icons.njk" import icon %}
+{% from "partials/macros.njk" import badge, sortLink, pager, empty %}
+{% block title %}{{ t('nav.batches') }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{{ t('nav.batches') }}</h1><p>{{ t('batches.subtitle') }}</p></div>
+  <div class="actions">{% if can('batches.create') %}<a class="btn btn-primary" href="/admin/batches/new">{{ icon('plus') }} {{ t('batches.new') }}</a>{% endif %}</div>
+</div>
+<section class="card">
+  <form class="toolbar" method="get" data-autosubmit role="search">
+    <div class="search">{{ icon('search') }}<input type="search" name="q" value="{{ query.q or '' }}" placeholder="{{ t('batches.search_placeholder') }}" aria-label="{{ t('common.search') }}"></div>
+    <select name="status" aria-label="{{ t('fields.status') }}"><option value="">{{ t('common.all_statuses') }}</option>{% for s in ['generated','released','closed'] %}<option value="{{ s }}"{% if query.status == s %} selected{% endif %}>{{ t('batch_status.' + s) }}</option>{% endfor %}</select>
+    <button class="btn" type="submit">{{ t('common.search') }}</button>
+  </form>
+  {% if list.rows.length %}
+  <div class="table-wrap"><table class="table table-cards">
+    <thead><tr>
+      <th>{{ sortLink('ref', t('fields.batch'), list, query) }}</th>
+      <th>{{ t('fields.status') }}</th>
+      <th class="end">{{ sortLink('quantity', t('fields.quantity'), list, query) }}</th>
+      <th class="end">{{ t('qr_status.available') }}</th>
+      <th class="end">{{ t('qr_status.assigned') }}</th>
+      <th class="end">{{ t('qr_status.active') }}</th>
+      <th>{{ sortLink('created', t('fields.created_at'), list, query) }}</th>
+    </tr></thead>
+    <tbody>{% for b in list.rows %}
+      <tr>
+        <td><a class="primary" href="/admin/batches/{{ b.id }}">{{ b.batch_ref }}</a><span class="sub">{{ b.name }}</span></td>
+        <td>{{ badge(b.status, t('batch_status.' + b.status)) }}</td>
+        <td class="end num">{{ fmt.number(b.quantity) }}</td>
+        <td class="end num" data-hide-mobile>{{ fmt.number(b.available) }}</td>
+        <td class="end num" data-hide-mobile>{{ fmt.number(b.assigned) }}</td>
+        <td class="end num" data-hide-mobile>{{ fmt.number(b.active) }}</td>
+        <td class="num" data-hide-mobile>{{ fmt.date(b.created_at) }}<span class="sub">{{ b.created_by_name }}</span></td>
+      </tr>{% endfor %}
+    </tbody>
+  </table></div>
+  {{ pager(list.pager, query, t, fmt) }}
+  {% else %}{{ empty(t('batches.empty_title'), t('common.empty_filtered') if (query.q or query.status) else t('batches.empty_text'), 'layers') }}{% endif %}
+</section>
+{% endblock %}

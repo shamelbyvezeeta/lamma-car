@@ -1,0 +1,22 @@
+{% from "partials/icons.njk" import icon %}
+{% from "partials/macros.njk" import input, select, fieldError %}
+{% set pf = privacyForm or form or c or {} %}
+<fieldset>
+  <legend class="label">{{ t('fields.phone_visibility') }}</legend>
+  <div class="radio-cards">
+    {% if isNew %}
+    <label class="radio-card"><input type="radio" name="phone_visibility" value="not_set"{% if pf.phone_visibility == 'not_set' or not pf.phone_visibility %} checked{% endif %}><strong>{{ t('visibility.not_set') }}</strong><span>{{ t('privacy.not_set_help') }}</span></label>
+    {% endif %}
+    <label class="radio-card"><input type="radio" name="phone_visibility" value="private"{% if pf.phone_visibility == 'private' %} checked{% endif %}><strong>{{ t('visibility.private') }}</strong><span>{{ t('privacy.private_help') }}</span></label>
+    <label class="radio-card"><input type="radio" name="phone_visibility" value="public"{% if pf.phone_visibility == 'public' %} checked{% endif %}><strong>{{ t('visibility.public') }}</strong><span>{{ t('privacy.public_help') }}</span></label>
+  </div>
+  {{ fieldError(errors, 'phone_visibility', t) }}
+</fieldset>
+<div class="alert alert-warn" data-public-warning hidden style="margin-top:.9rem">{{ icon('eye') }}<div>{{ t('privacy.public_warning') }}</div></div>
+<div class="field" style="margin-top:1rem">
+  <label class="check"><input type="checkbox" name="allow_contact_requests"{% if pf.allow_contact_requests == true or pf.allow_contact_requests == 'on' %} checked{% endif %}><span><strong>{{ t('privacy.allow_contact_requests') }}</strong><br><span class="hint">{{ t('privacy.allow_contact_requests_help') }}</span></span></label>
+</div>
+<div class="form-grid">
+  {{ select('consent_method', t('fields.consent_method'), [{value:'in_person',label:t('consent_method.in_person')},{value:'phone_call',label:t('consent_method.phone_call')},{value:'written_form',label:t('consent_method.written_form')},{value:'other',label:t('consent_method.other')}], pf, errors, t, false, t('privacy.choose_method')) }}
+  {{ input('evidence_note', t('fields.evidence_note'), pf, errors, t, 'text', false, t('privacy.evidence_hint'), 'maxlength="500"') }}
+</div>

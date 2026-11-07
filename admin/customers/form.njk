@@ -1,0 +1,37 @@
+{% extends "layouts/admin.njk" %}
+{% from "partials/icons.njk" import icon %}
+{% from "partials/macros.njk" import csrf, input, textarea, select, validationSummary, formError, fieldError %}
+{% block title %}{{ t('customers.new') if isNew else t('customers.edit') }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="crumbs"><a href="/admin/customers">{{ t('nav.customers') }}</a>{% if not isNew %} / <a href="/admin/customers/{{ c.id }}">{{ c.customer_ref }}</a>{% endif %}</div>
+    <h1>{{ t('customers.new') if isNew else t('customers.edit') }}</h1>
+  </div>
+</div>
+{{ validationSummary(errors, t) }}{{ formError(formErrorKey, formErrorParams, t) }}
+<form class="card" method="post" action="{{ '/admin/customers' if isNew else '/admin/customers/' + c.id }}" novalidate>
+  {{ csrf(csrfToken()) }}
+  <div class="card-body">
+    <h2 class="section-title">{{ t('customers.section_identity') }}</h2>
+    <div class="form-grid">
+      {{ input('full_name', t('fields.full_name'), form, errors, t, 'text', true, '', 'maxlength="120" autocomplete="off"') }}
+      {{ input('mobile', t('fields.mobile'), form, errors, t, 'tel', true, t('customers.mobile_hint'), 'maxlength="20" inputmode="tel" autocomplete="off"') }}
+      {{ input('email', t('fields.email_optional'), form, errors, t, 'email', false, '', 'maxlength="160" autocomplete="off"') }}
+      {{ select('preferred_locale', t('fields.preferred_locale'), [{value:'ar', label:'العربية'}, {value:'en', label:'English'}], form, errors, t) }}
+      {{ input('registration_date', t('fields.registration_date'), form, errors, t, 'date', false) }}
+      {{ textarea('internal_notes', t('fields.internal_notes'), form, errors, t, t('customers.notes_hint'), 2000) }}
+    </div>
+    {% if isNew %}
+    <hr class="divider">
+    <h2 class="section-title">{{ t('privacy.title') }}</h2>
+    <p class="muted small" style="margin-top:-.3rem">{{ t('privacy.default_note') }}</p>
+    {% include "admin/customers/_privacy_fields.njk" %}
+    {% endif %}
+  </div>
+  <div class="form-actions">
+    <a class="btn btn-ghost" href="{{ '/admin/customers' if isNew else '/admin/customers/' + c.id }}">{{ t('common.cancel') }}</a>
+    <button class="btn btn-primary" type="submit">{{ t('customers.create') if isNew else t('common.save') }}</button>
+  </div>
+</form>
+{% endblock %}

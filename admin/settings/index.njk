@@ -1,0 +1,71 @@
+{% extends "layouts/admin.njk" %}
+{% from "partials/icons.njk" import icon %}
+{% from "partials/macros.njk" import csrf, input, validationSummary, formError, badge %}
+{% block title %}{{ t('nav.settings') }}{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>{{ t('nav.settings') }}</h1><p>{{ t('settings.subtitle') }}</p></div></div>
+{{ validationSummary(errors, t) }}{{ formError(formErrorKey, formErrorParams, t) }}
+<div class="grid grid-2" style="align-items:start">
+  <form class="card" method="post" action="/admin/settings" novalidate>
+    {{ csrf(csrfToken()) }}
+    <div class="card-head"><h2>{{ t('settings.landing') }}</h2></div>
+    <div class="card-body">
+      <p class="muted small" style="margin-top:0">{{ t('settings.landing_help') }}</p>
+      {% for k in ['landing.show_category','landing.show_vehicle_photo','landing.show_extended_details'] %}
+        <div class="field"><label class="check"><input type="checkbox" name="{{ k | replace('.', '__') }}"{% if s[k] %} checked{% endif %}><span>{{ t('settings.keys.' + k) }}</span></label></div>
+      {% endfor %}
+      <hr class="divider">
+      <h3 class="section-title">{{ t('settings.contact') }}</h3>
+      <div class="field"><label class="check"><input type="checkbox" name="contact__requests_enabled"{% if s['contact.requests_enabled'] %} checked{% endif %}><span><strong>{{ t('settings.keys.contact.requests_enabled') }}</strong><br><span class="hint">{{ t('settings.contact_help') }}</span></span></label></div>
+      <div class="form-grid">
+        <div class="field"><label for="sp">{{ t('settings.keys.support.public_phone') }}</label><input id="sp" name="support__public_phone" type="tel" value="{{ s['support.public_phone'] or '' }}"><span class="hint">{{ t('settings.support_help') }}</span></div>
+        <div class="field"><label for="se">{{ t('settings.keys.support.public_email') }}</label><input id="se" name="support__public_email" type="email" value="{{ s['support.public_email'] or '' }}"></div>
+      </div>
+      <hr class="divider">
+      <h3 class="section-title">{{ t('settings.sales') }}</h3>
+      <div class="form-grid">
+        <div class="field"><label for="dc">{{ t('settings.keys.sales.default_currency') }}</label><input id="dc" name="sales__default_currency" class="input-ltr" maxlength="3" value="{{ s['sales.default_currency'] or 'EGP' }}"></div>
+        <div class="field"><label for="da">{{ t('settings.keys.sales.default_amount') }}</label><input id="da" name="sales__default_amount" class="input-ltr" inputmode="decimal" value="{{ s['sales.default_amount'] if s['sales.default_amount'] !== null else '' }}"><span class="hint">{{ t('settings.default_amount_help') }}</span></div>
+      </div>
+    </div>
+    <div class="form-actions"><button class="btn btn-primary" type="submit">{{ t('common.save') }}</button></div>
+  </form>
+
+  <div class="stack">
+    <section class="card" id="layouts">
+      <div class="card-head"><h2>{{ icon('printer') }} {{ t('settings.layouts') }}</h2></div>
+      <div class="card-body">
+        <p class="muted small" style="margin-top:0">{{ t('settings.layouts_help', { w: sticker.width_mm, h: sticker.height_mm }) }}</p>
+        <div class="table-wrap"><table class="table"><tbody>{% for l in layouts %}
+          <tr>
+            <td><strong>{{ l.name }}</strong> {% if l.is_default %}{{ badge('active', t('settings.default')) }}{% endif %}<span class="sub num">{{ l.page_width_mm }}×{{ l.page_height_mm }} mm · {{ l.columns }}×{{ l.rows }} · {{ t('settings.bleed') }} {{ l.bleed_mm }} mm</span></td>
+            <td class="end"><div class="actions" style="justify-content:flex-end">
+              {% if not l.is_default %}<form method="post" action="/admin/settings/layouts/{{ l.id }}/default">{{ csrf(csrfToken()) }}<button class="btn btn-sm" type="submit">{{ t('settings.make_default') }}</button></form>
+              <form method="post" action="/admin/settings/layouts/{{ l.id }}/delete" data-confirm="{{ t('settings.confirm_delete_layout') }}" data-danger>{{ csrf(csrfToken()) }}<button class="btn btn-sm btn-ghost" type="submit">{{ t('common.delete') }}</button></form>{% endif %}
+            </div></td>
+          </tr>{% endfor %}</tbody></table></div>
+      </div>
+    </section>
+    <form class="card" method="post" action="/admin/settings/layouts" novalidate>
+      {{ csrf(csrfToken()) }}
+      <div class="card-head"><h2>{{ t('settings.new_layout') }}</h2></div>
+      <div class="card-body">
+        {% set lf = layoutForm or { page_width_mm: 210, page_height_mm: 297, columns: 2, rows: 2, margin_top_mm: 12, margin_left_mm: 9, gap_x_mm: 12, gap_y_mm: 12, bleed_mm: 2, crop_marks: 'on' } %}
+        {{ input('name', t('fields.name'), lf, errors, t, 'text', true, '', 'maxlength="80"') }}
+        <div class="form-grid">
+          {% for k in ['page_width_mm','page_height_mm','columns','rows','margin_top_mm','margin_left_mm','gap_x_mm','gap_y_mm','bleed_mm'] %}
+            {{ input(k, t('settings.layout_fields.' + k), lf, errors, t, 'number', true, '', 'step="0.1" min="0" inputmode="decimal"') }}
+          {% endfor %}
+          <div class="field"><label class="check" style="margin-top:1.9rem"><input type="checkbox" name="crop_marks"{% if lf.crop_marks %} checked{% endif %}><span>{{ t('settings.layout_fields.crop_marks') }}</span></label></div>
+        </div>
+      </div>
+      <div class="form-actions"><button class="btn btn-dark" type="submit">{{ t('settings.add_layout') }}</button></div>
+    </form>
+    <section class="card card-pad">
+      <h2 class="section-title">{{ t('settings.channels') }}</h2>
+      <p class="muted small" style="margin-top:0">{{ t('settings.channels_help') }}</p>
+      <div class="actions">{% for c in channels %}{{ badge('plain', (c.name_ar if locale == 'ar' else c.name_en) + ' · ' + c.code, 'badge-plain') }}{% endfor %}</div>
+    </section>
+  </div>
+</div>
+{% endblock %}

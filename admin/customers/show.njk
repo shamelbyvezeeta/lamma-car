@@ -1,0 +1,94 @@
+{% extends "layouts/admin.njk" %}
+{% from "partials/icons.njk" import icon %}
+{% from "partials/macros.njk" import csrf, badge, empty, validationSummary, formError %}
+{% block title %}{{ c.full_name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="crumbs"><a href="/admin/customers">{{ t('nav.customers') }}</a> / {{ c.customer_ref }}</div>
+    <h1>{{ c.full_name }} {% if c.is_test_data %}{{ badge('test', t('common.test_data'), 'badge-plain') }}{% endif %}</h1>
+    <p>{{ badge(c.status, t('customer_status.' + c.status)) }} · {{ t('customers.registered_on', { date: fmt.date(c.registration_date) }) }}</p>
+  </div>
+  <div class="actions">
+    {% if can('customers.edit') %}<a class="btn" href="/admin/customers/{{ c.id }}/edit">{{ icon('edit') }} {{ t('common.edit') }}</a>{% endif %}
+    {% if can('vehicles.create') and c.status != 'archived' %}<a class="btn btn-primary" href="/admin/vehicles/new?customer={{ c.id }}">{{ icon('plus') }} {{ t('vehicles.add') }}</a>{% endif %}
+  </div>
+</div>
+{{ validationSummary(errors, t) }}{{ formError(formErrorKey, formErrorParams, t) }}
+
+<div class="grid grid-main">
+  <div class="stack">
+    <section class="card">
+      <div class="card-head"><h2>{{ t('nav.vehicles') }}</h2><span class="muted small num">{{ c.vehicles.length }}</span></div>
+      {% if c.vehicles.length %}
+      <div class="table-wrap"><table class="table table-cards">
+        <thead><tr><th>{{ t('fields.vehicle') }}</th><th>{{ t('fields.listing_status') }}</th><th>{{ t('fields.sticker') }}</th></tr></thead>
+        <tbody>{% for v in c.vehicles %}
+          <tr>
+            <td><a class="primary" href="/admin/vehicles/{{ v.id }}">{{ v.make }} {{ v.model }} <span class="num">{{ v.model_year }}</span></a><span class="sub">{{ v.vehicle_ref }} · {{ v.color }}</span></td>
+            <td>{{ badge(v.listing_status, t('listing.' + v.listing_status)) }}</td>
+            <td>{% if v.live_qr %}<a href="/admin/qr/{{ v.live_qr.id }}" class="primary num">{{ v.live_qr.serial_no | serial }}</a> {{ badge(v.live_qr.status, t('qr_status.' + v.live_qr.status)) }}{% else %}<span class="muted">{{ t('vehicles.no_sticker') }}</span>{% endif %}</td>
+          </tr>{% endfor %}
+        </tbody>
+      </table></div>
+      {% else %}{{ empty(t('vehicles.empty_for_customer'), t('vehicles.empty_for_customer_text'), 'car') }}{% endif %}
+    </section>
+
+    <section class="card" id="privacy">
+      <div class="card-head"><h2>{{ icon('lock') }} {{ t('privacy.title') }}</h2>{{ badge(c.phone_visibility, t('visibility.' + c.phone_visibility)) }}</div>
+      <div class="card-body">
+        {% if c.phone_visibility == 'not_set' %}<div class="alert alert-info">{{ icon('info') }}<div>{{ t('privacy.not_set_banner') }}</div></div>{% endif %}
+        {% if can('customers.privacy') %}
+        <form method="post" action="/admin/customers/{{ c.id }}/privacy" data-confirm="{{ t('privacy.confirm') }}" novalidate>
+          {{ csrf(csrfToken()) }}
+          {% include "admin/customers/_privacy_fields.njk" %}
+          <div class="actions" style="justify-content:flex-end"><button class="btn btn-dark" type="submit">{{ t('privacy.save') }}</button></div>
+        </form>
+        {% endif %}
+        <hr class="divider">
+        <h3 class="section-title">{{ t('privacy.history') }}</h3>
+        {% if c.consents.length %}
+        <ul class="timeline">{% for r in c.consents %}
+          <li><strong>{{ t('consent_type.' + r.consent_type) }}: {{ t('consent_value.' + r.value) }}</strong> — {{ t('consent_method.' + r.method) }}{% if r.evidence_note %} · <span class="muted">{{ r.evidence_note }}</span>{% endif %}<span class="when">{{ fmt.dateTime(r.recorded_at) }} · {{ r.recorded_by_name or '—' }}</span></li>
+        {% endfor %}</ul>
+        {% else %}<p class="muted small" style="margin:0">{{ t('privacy.no_history') }}</p>{% endif %}
+      </div>
+    </section>
+  </div>
+
+  <div class="stack">
+    <section class="card card-pad">
+      <h2 class="section-title">{{ t('customers.details') }}</h2>
+      <dl class="props">
+        <dt>{{ t('fields.ref') }}</dt><dd class="num">{{ c.customer_ref }}</dd>
+        <dt>{{ t('fields.mobile') }}</dt><dd><span class="ltr num">{{ fmt.phone(c.mobile) }}</span></dd>
+        <dt>{{ t('fields.email') }}</dt><dd>{{ c.email or '—' }}</dd>
+        <dt>{{ t('fields.preferred_locale') }}</dt><dd>{{ 'العربية' if c.preferred_locale == 'ar' else 'English' }}</dd>
+        <dt>{{ t('fields.contact_requests') }}</dt><dd>{{ t('common.yes') if c.allow_contact_requests else t('common.no') }}</dd>
+        <dt>{{ t('fields.created_by') }}</dt><dd>{{ c.created_by_name or '—' }}</dd>
+        <dt>{{ t('fields.created_at') }}</dt><dd class="num">{{ fmt.dateTime(c.created_at) }}</dd>
+      </dl>
+      {% if c.internal_notes %}<hr class="divider"><h3 class="section-title">{{ t('fields.internal_notes') }}</h3><p style="margin:0;white-space:pre-wrap">{{ c.internal_notes }}</p>{% endif %}
+    </section>
+    <section class="card">
+      <div class="card-head"><h2>{{ t('nav.sales') }}</h2>{% if can('sales.create') and c.vehicles.length %}<a class="btn btn-sm" href="/admin/sales/new?customer={{ c.id }}">{{ icon('plus') }} {{ t('sales.new') }}</a>{% endif %}</div>
+      {% if c.sales.length %}
+      <div class="table-wrap"><table class="table"><tbody>{% for s in c.sales %}
+        <tr><td><a class="primary" href="/admin/sales/{{ s.id }}">{{ s.sale_ref }}</a><span class="sub num">{{ fmt.date(s.sale_date) }}</span></td><td class="end num">{{ fmt.money(s.amount, s.currency) }}<span class="sub">{{ badge(s.payment_status, t('payment.' + s.payment_status)) }}</span></td></tr>
+      {% endfor %}</tbody></table></div>
+      {% else %}<div class="card-body muted small">{{ t('sales.none_for_customer') }}</div>{% endif %}
+    </section>
+    {% if can('customers.status') %}
+    <section class="card card-pad">
+      <h2 class="section-title">{{ t('customers.status_title') }}</h2>
+      <form method="post" action="/admin/customers/{{ c.id }}/status" class="actions" data-confirm="{{ t('customers.status_confirm') }}" data-danger>
+        {{ csrf(csrfToken()) }}
+        <select name="status" aria-label="{{ t('fields.status') }}" style="width:auto;flex:1">{% for s in ['active','inactive','archived'] %}<option value="{{ s }}"{% if c.status == s %} selected{% endif %}>{{ t('customer_status.' + s) }}</option>{% endfor %}</select>
+        <button class="btn" type="submit">{{ t('common.update') }}</button>
+      </form>
+      <p class="hint" style="margin:.6rem 0 0">{{ t('customers.status_help') }}</p>
+    </section>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

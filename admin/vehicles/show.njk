@@ -1,0 +1,95 @@
+{% extends "layouts/admin.njk" %}
+{% from "partials/icons.njk" import icon %}
+{% from "partials/macros.njk" import csrf, badge, validationSummary, formError, fieldError %}
+{% block title %}{{ v.make }} {{ v.model }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="crumbs"><a href="/admin/vehicles">{{ t('nav.vehicles') }}</a> / <a href="/admin/customers/{{ v.customer_id }}">{{ v.customer_name }}</a> / {{ v.vehicle_ref }}</div>
+    <h1>{{ v.make }} {{ v.model }} <span class="num">{{ v.model_year }}</span></h1>
+    <p>{{ badge(v.listing_status, t('listing.' + v.listing_status)) }} · {{ v.color }} · {{ t('category.' + v.category) }}</p>
+  </div>
+  <div class="actions">
+    {% if can('vehicles.edit') %}<a class="btn" href="/admin/vehicles/{{ v.id }}/edit">{{ icon('edit') }} {{ t('common.edit') }}</a>{% endif %}
+    {% if can('sales.create') %}<a class="btn btn-primary" href="/admin/sales/new?customer={{ v.customer_id }}&vehicle={{ v.id }}">{{ icon('receipt') }} {{ t('sales.new') }}</a>{% endif %}
+  </div>
+</div>
+{{ validationSummary(errors, t) }}{{ formError(formErrorKey, formErrorParams, t) }}
+<div class="grid grid-main">
+  <div class="stack">
+    <section class="card" id="sticker">
+      <div class="card-head"><h2>{{ icon('qr') }} {{ t('vehicles.sticker_title') }}</h2>{% if v.live_qr %}{{ badge(v.live_qr.status, t('qr_status.' + v.live_qr.status)) }}{% endif %}</div>
+      <div class="card-body">
+        {% if v.live_qr %}
+          {% set q = v.live_qr %}
+          <div class="sticker-tile">
+            <div><div class="serial num">{{ q.serial_no | serial }}</div><div class="muted small">{{ t('fields.batch') }} {{ q.batch_ref }} · {{ t('fields.assigned_at') }} {{ fmt.date(q.assigned_at) }}{% if q.activated_at %} · {{ t('fields.activated_at') }} {{ fmt.date(q.activated_at) }}{% endif %}</div></div>
+          </div>
+          {% if q.status == 'assigned' %}<div class="alert alert-info" style="margin:1rem 0 0">{{ icon('info') }}<div>{{ t('vehicles.awaiting_activation') }}{% if v.customer_status != 'active' %} {{ t('errors.customer_not_active') }}{% endif %}</div></div>{% endif %}
+          {% if v.phone_visibility == 'not_set' and q.status != 'deactivated' %}<div class="alert alert-warn" style="margin:1rem 0 0">{{ icon('lock') }}<div>{{ t('vehicles.privacy_not_set_hint') }} <a href="/admin/customers/{{ v.customer_id }}#privacy">{{ t('common.review') }}</a></div></div>{% endif %}
+          <div class="actions" style="margin-top:1rem">
+            <a class="btn btn-sm" href="/admin/qr/{{ q.id }}">{{ t('qr.manage') }}</a>
+            {% if q.status in ['assigned','suspended'] and can('qr.activate') %}
+              <form method="post" action="/admin/qr/{{ q.id }}/activate" data-confirm="{{ t('qr.confirm_activate') }}">{{ csrf(csrfToken()) }}<input type="hidden" name="back" value="/admin/vehicles/{{ v.id }}"><button class="btn btn-primary btn-sm" type="submit">{{ icon('check') }} {{ t('qr.activate') if q.status == 'assigned' else t('qr.reactivate') }}</button></form>
+            {% endif %}
+            {% if q.status == 'active' %}<a class="btn btn-sm" href="/q/{{ q.public_code }}" target="_blank" rel="noopener">{{ icon('eye') }} {{ t('qr.view_public_page') }}</a>{% endif %}
+          </div>
+        {% elif can('qr.assign') %}
+          <p class="muted" style="margin-top:0">{{ t('vehicles.assign_help') }}</p>
+          <form method="post" action="/admin/vehicles/{{ v.id }}/assign-qr" class="actions" novalidate>
+            {{ csrf(csrfToken()) }}
+            <div class="field{% if errors and errors.serial %} has-error{% endif %}" style="margin:0;flex:1;min-width:200px">
+              <label for="serial" class="sr-only">{{ t('fields.serial') }}</label>
+              <input id="serial" name="serial" class="input-ltr" placeholder="LC-000123" value="{{ assignForm.serial if assignForm else '' }}" autocomplete="off" required>
+              {{ fieldError(errors, 'serial', t) }}
+            </div>
+            <button class="btn btn-dark" type="submit">{{ t('vehicles.assign_sticker') }}</button>
+          </form>
+        {% else %}<p class="muted">{{ t('vehicles.no_sticker') }}</p>{% endif %}
+        {% if v.qr_codes.length > (1 if v.live_qr else 0) %}
+          <hr class="divider"><h3 class="section-title">{{ t('vehicles.sticker_history') }}</h3>
+          <ul class="timeline">{% for q in v.qr_codes %}{% if not v.live_qr or q.id != v.live_qr.id %}<li><a href="/admin/qr/{{ q.id }}" class="num">{{ q.serial_no | serial }}</a> {{ badge(q.status, t('qr_status.' + q.status)) }}{% if q.status_reason %} — {{ q.status_reason }}{% endif %}<span class="when">{{ fmt.dateTime(q.deactivated_at or q.assigned_at) }}</span></li>{% endif %}{% endfor %}</ul>
+        {% endif %}
+      </div>
+    </section>
+
+    <section class="card card-pad">
+      <h2 class="section-title">{{ t('vehicles.details') }}</h2>
+      <dl class="props">
+        <dt>{{ t('fields.ref') }}</dt><dd class="num">{{ v.vehicle_ref }}</dd>
+        <dt>{{ t('fields.customer') }}</dt><dd><a href="/admin/customers/{{ v.customer_id }}">{{ v.customer_name }}</a> <span class="muted">{{ v.customer_ref }}</span></dd>
+        <dt>{{ t('fields.transmission') }}</dt><dd>{{ t('transmission.' + v.transmission) if v.transmission else '—' }}</dd>
+        <dt>{{ t('fields.fuel_type') }}</dt><dd>{{ t('fuel.' + v.fuel_type) if v.fuel_type else '—' }}</dd>
+        <dt>{{ t('fields.mileage_km') }}</dt><dd class="num">{{ fmt.number(v.mileage_km) if v.mileage_km !== null else '—' }} {% if v.mileage_km !== null %}<span class="muted small">({{ t('vehicles.public') if v.show_mileage else t('vehicles.hidden') }})</span>{% endif %}</dd>
+        <dt>{{ t('fields.asking_price') }}</dt><dd class="num">{{ fmt.money(v.asking_price, v.price_currency) if v.asking_price !== null else '—' }} {% if v.asking_price !== null %}<span class="muted small">({{ t('vehicles.public') if v.show_price else t('vehicles.hidden') }})</span>{% endif %}</dd>
+        <dt>{{ t('fields.public_description') }}</dt><dd style="white-space:pre-wrap;font-weight:500">{{ v.public_description or '—' }}</dd>
+      </dl>
+    </section>
+  </div>
+
+  <div class="stack">
+    <section class="card card-pad" id="photo">
+      <h2 class="section-title">{{ t('vehicles.photo') }}</h2>
+      <div class="photo-box">{% if v.photo_key %}<img src="/admin/vehicles/{{ v.id }}/photo?k={{ v.photo_key | truncate(8, true, '') }}" alt="{{ v.make }} {{ v.model }}">{% else %}<span>{{ icon('image') }}</span>{% endif %}</div>
+      {% if v.photo_key %}
+        <p style="margin:.7rem 0">{{ badge('active' if v.photo_approved else 'pending', t('vehicles.photo_approved') if v.photo_approved else t('vehicles.photo_pending')) }}</p>
+        <div class="actions">
+          {% if can('vehicles.photo_approve') %}
+          <form method="post" action="/admin/vehicles/{{ v.id }}/photo/approve">{{ csrf(csrfToken()) }}<input type="hidden" name="approved" value="{{ 'false' if v.photo_approved else 'true' }}"><button class="btn btn-sm {{ '' if v.photo_approved else 'btn-primary' }}" type="submit">{{ t('vehicles.unapprove_photo') if v.photo_approved else t('vehicles.approve_photo') }}</button></form>
+          {% endif %}
+          {% if can('vehicles.photo') %}
+          <form method="post" action="/admin/vehicles/{{ v.id }}/photo/delete" data-confirm="{{ t('vehicles.confirm_remove_photo') }}" data-danger>{{ csrf(csrfToken()) }}<button class="btn btn-sm btn-danger" type="submit">{{ t('common.remove') }}</button></form>
+          {% endif %}
+        </div>
+      {% endif %}
+      {% if can('vehicles.photo') %}
+      <form method="post" action="/admin/vehicles/{{ v.id }}/photo" enctype="multipart/form-data" style="margin-top:1rem">
+        {{ csrf(csrfToken()) }}
+        <div class="field"><label for="photo">{{ t('vehicles.upload_photo') }}</label><input id="photo" type="file" name="photo" accept="image/jpeg,image/png,image/webp,image/heic" required><span class="hint">{{ t('vehicles.photo_hint') }}</span></div>
+        <button class="btn btn-sm" type="submit">{{ icon('upload') }} {{ t('common.upload') }}</button>
+      </form>
+      {% endif %}
+    </section>
+  </div>
+</div>
+{% endblock %}

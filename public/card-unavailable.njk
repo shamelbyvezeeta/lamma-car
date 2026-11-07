@@ -1,0 +1,16 @@
+{% extends "layouts/public.njk" %}
+{% from "partials/icons.njk" import icon %}
+{% block title %}{{ t('public.unavailable_title') if reason == 'inactive' else t('public.invalid_title') }} · Lamma Car{% endblock %}
+{% block content %}
+<article class="vcard state">
+  <div class="ico">{{ icon('pause' if reason == 'inactive' else 'qr') }}</div>
+  <h1>{{ t('public.unavailable_title') if reason == 'inactive' else t('public.invalid_title') }}</h1>
+  <p>{{ t('public.unavailable_text') if reason == 'inactive' else t('public.invalid_text') }}</p>
+  {% if support and (support.phone or support.email) %}
+  <div class="support">
+    {% if support.phone %}<a class="btn" href="tel:{{ support.phone | replace(' ', '') }}">{{ icon('phone') }} {{ t('public.contact_lamma') }}</a>{% endif %}
+    {% if support.email %}<a class="btn" href="mailto:{{ support.email }}">{{ t('public.email_lamma') }}</a>{% endif %}
+  </div>
+  {% endif %}
+</article>
+{% endblock %}

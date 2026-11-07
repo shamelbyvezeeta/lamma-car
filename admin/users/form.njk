@@ -1,0 +1,37 @@
+{% extends "layouts/admin.njk" %}
+{% from "partials/icons.njk" import icon %}
+{% from "partials/macros.njk" import csrf, input, select, validationSummary, formError %}
+{% block title %}{{ t('users.new') if isNew else t('users.edit') }}{% endblock %}
+{% block content %}
+<div class="page-head"><div><div class="crumbs"><a href="/admin/users">{{ t('nav.users') }}</a></div><h1>{{ t('users.new') if isNew else u.full_name }}</h1>{% if not isNew %}<p>{{ u.email }}</p>{% endif %}</div></div>
+{{ validationSummary(errors, t) }}{{ formError(formErrorKey, formErrorParams, t) }}
+{% set roleOpts = options(t, 'roles', ['sales_operator','admin','super_admin']) %}
+<div class="grid grid-2" style="align-items:start">
+<form class="card" method="post" action="{{ '/admin/users' if isNew else '/admin/users/' + u.id }}" novalidate>
+  {{ csrf(csrfToken()) }}
+  <div class="card-body">
+    {{ input('full_name', t('fields.full_name'), form, errors, t, 'text', true, '', 'maxlength="120"') }}
+    {% if isNew %}{{ input('email', t('fields.email'), form, errors, t, 'email', true, '', 'maxlength="160" autocomplete="off"') }}{% endif %}
+    {{ select('role', t('fields.role'), roleOpts, form, errors, t, true) }}
+    {% if isNew %}
+      {{ input('password', t('users.temp_password'), {}, errors, t, 'password', true, t('users.temp_password_hint'), 'minlength="12" autocomplete="new-password"') }}
+    {% else %}
+      <label class="check"><input type="checkbox" name="is_active"{% if form.is_active == true or form.is_active == 'on' %} checked{% endif %}{% if u.id == user.id %} disabled{% endif %}><span>{{ t('users.account_active') }}</span></label>
+      {% if u.id == user.id %}<input type="hidden" name="is_active" value="on"><p class="hint">{{ t('users.self_note') }}</p>{% endif %}
+    {% endif %}
+  </div>
+  <div class="form-actions"><a class="btn btn-ghost" href="/admin/users">{{ t('common.cancel') }}</a><button class="btn btn-primary" type="submit">{{ t('users.create') if isNew else t('common.save') }}</button></div>
+</form>
+{% if not isNew %}
+<form class="card" method="post" action="/admin/users/{{ u.id }}/reset-password" novalidate data-confirm="{{ t('users.confirm_reset') }}" data-danger>
+  {{ csrf(csrfToken()) }}
+  <div class="card-head"><h2>{{ icon('lock') }} {{ t('users.reset_password') }}</h2></div>
+  <div class="card-body">
+    <p class="muted small" style="margin-top:0">{{ t('users.reset_help') }}</p>
+    {{ input('password', t('users.temp_password'), {}, errors, t, 'password', true, t('users.temp_password_hint'), 'minlength="12" autocomplete="new-password"') }}
+  </div>
+  <div class="form-actions"><button class="btn btn-danger" type="submit">{{ t('users.reset_password') }}</button></div>
+</form>
+{% endif %}
+</div>
+{% endblock %}

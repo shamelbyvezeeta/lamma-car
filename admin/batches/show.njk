@@ -1,0 +1,72 @@
+{% extends "layouts/admin.njk" %}
+{% from "partials/icons.njk" import icon %}
+{% from "partials/macros.njk" import csrf, badge, pager, empty %}
+{% block title %}{{ b.batch_ref }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="crumbs"><a href="/admin/batches">{{ t('nav.batches') }}</a> / {{ b.batch_ref }}</div>
+    <h1>{{ b.name }} {{ badge(b.status, t('batch_status.' + b.status)) }}</h1>
+    <p><span class="num">{{ b.batch_ref }}</span> · {{ t('batches.created_by_on', { name: b.created_by_name or '—', date: fmt.dateTime(b.created_at) }) }}</p>
+  </div>
+  <div class="actions">
+    {% if can('batches.export') %}<a class="btn" href="/admin/batches/{{ b.id }}/export.csv">{{ icon('download') }} {{ t('common.export_csv') }}</a>{% endif %}
+    {% if b.status == 'generated' and can('batches.release') %}
+      <form method="post" action="/admin/batches/{{ b.id }}/release" data-confirm="{{ t('batches.confirm_release', { n: b.generated }) }}">{{ csrf(csrfToken()) }}<button class="btn btn-primary" type="submit">{{ icon('check') }} {{ t('batches.release') }}</button></form>
+    {% endif %}
+    {% if b.status != 'closed' and can('batches.close') %}
+      <form method="post" action="/admin/batches/{{ b.id }}/close" data-confirm="{{ t('batches.confirm_close') }}" data-danger>{{ csrf(csrfToken()) }}<button class="btn btn-ghost" type="submit">{{ t('batches.close') }}</button></form>
+    {% endif %}
+  </div>
+</div>
+
+<section class="kpis">
+  <div class="kpi"><div class="k-label"><i></i>{{ t('fields.quantity') }}</div><div class="k-value">{{ fmt.number(b.quantity) }}</div><div class="k-sub">{{ t('qr_status.generated') }}: {{ fmt.number(b.generated) }}</div></div>
+  <div class="kpi"><div class="k-label"><i style="background:var(--lavender)"></i>{{ t('qr_status.available') }}</div><div class="k-value">{{ fmt.number(b.available) }}</div></div>
+  <div class="kpi"><div class="k-label"><i style="background:#E7A93B"></i>{{ t('qr_status.assigned') }}</div><div class="k-value">{{ fmt.number(b.assigned) }}</div><div class="k-sub">{{ t('batches.ever_assigned', { n: fmt.number(b.ever_assigned) }) }}</div></div>
+  <div class="kpi"><div class="k-label"><i style="background:#2E9E6A"></i>{{ t('qr_status.active') }}</div><div class="k-value">{{ fmt.number(b.active) }}</div><div class="k-sub">{{ t('qr_status.suspended') }} {{ fmt.number(b.suspended) }} · {{ t('qr_status.deactivated') }} {{ fmt.number(b.deactivated) }}</div></div>
+</section>
+
+<div class="grid grid-main">
+  <section class="card">
+    <form class="toolbar" method="get" data-autosubmit role="search">
+      <div class="search">{{ icon('search') }}<input type="search" name="q" value="{{ query.q or '' }}" placeholder="{{ t('qr.search_placeholder') }}" aria-label="{{ t('common.search') }}"></div>
+      <select name="status" aria-label="{{ t('fields.status') }}"><option value="">{{ t('common.all_statuses') }}</option>{% for s in statuses %}<option value="{{ s }}"{% if query.status == s %} selected{% endif %}>{{ t('qr_status.' + s) }}</option>{% endfor %}</select>
+    </form>
+    {% if codes.rows.length %}
+    <div class="table-wrap"><table class="table table-cards">
+      <thead><tr><th>{{ t('fields.serial') }}</th><th>{{ t('fields.status') }}</th><th>{{ t('fields.assigned_to') }}</th></tr></thead>
+      <tbody>{% for q in codes.rows %}
+        <tr><td><a class="primary num" href="/admin/qr/{{ q.id }}">{{ q.serial_no | serial }}</a><span class="sub mono">{{ q.public_code }}</span></td><td>{{ badge(q.status, t('qr_status.' + q.status)) }}</td><td>{% if q.customer_id %}<a href="/admin/vehicles/{{ q.vehicle_id }}">{{ q.customer_name }}</a><span class="sub">{{ q.make }} {{ q.model }}</span>{% else %}<span class="muted">—</span>{% endif %}</td></tr>
+      {% endfor %}</tbody>
+    </table></div>
+    {{ pager(codes.pager, query, t, fmt) }}
+    {% else %}{{ empty(t('qr.empty_title'), t('common.empty_filtered'), 'qr') }}{% endif %}
+  </section>
+
+  <div class="stack">
+    {% if can('batches.pdf') %}
+    <section class="card card-pad">
+      <h2 class="section-title">{{ icon('printer') }} {{ t('batches.pdf_title') }}</h2>
+      <p class="muted small" style="margin-top:0">{{ t('batches.pdf_help') }}</p>
+      <form method="get" action="/admin/batches/{{ b.id }}/pdf">
+        <div class="field"><label for="layout">{{ t('batches.sheet_layout') }}</label><select id="layout" name="layout">{% for l in layouts %}<option value="{{ l.id }}"{% if l.is_default %} selected{% endif %}>{{ l.name }}</option>{% endfor %}</select></div>
+        <div class="field"><label for="variant">{{ t('batches.pdf_variant') }}</label><select id="variant" name="variant">{% for v in variants %}<option value="{{ v }}"{% if v == 'proof' %} selected{% endif %}>{{ t('pdf_variant.' + v) }}</option>{% endfor %}</select></div>
+        <div class="field"><label for="scope">{{ t('batches.pdf_scope') }}</label><select id="scope" name="scope"><option value="all">{{ t('batches.scope_all') }}</option><option value="unassigned">{{ t('batches.scope_unassigned') }}</option></select></div>
+        <button class="btn btn-dark btn-block" type="submit">{{ icon('download') }} {{ t('batches.download_pdf') }}</button>
+      </form>
+      <p class="hint" style="margin:.7rem 0 0">{{ t('batches.pdf_variants_help') }}</p>
+    </section>
+    {% endif %}
+    <section class="card card-pad">
+      <h2 class="section-title">{{ t('batches.details') }}</h2>
+      <dl class="props">
+        <dt>{{ t('fields.ref') }}</dt><dd class="num">{{ b.batch_ref }}</dd>
+        <dt>{{ t('fields.created_by') }}</dt><dd>{{ b.created_by_name or '—' }}</dd>
+        <dt>{{ t('batches.released') }}</dt><dd class="num">{{ fmt.dateTime(b.released_at) }}{% if b.released_by_name %} · {{ b.released_by_name }}{% endif %}</dd>
+        <dt>{{ t('fields.notes') }}</dt><dd style="white-space:pre-wrap">{{ b.notes or '—' }}</dd>
+      </dl>
+    </section>
+  </div>
+</div>
+{% endblock %}

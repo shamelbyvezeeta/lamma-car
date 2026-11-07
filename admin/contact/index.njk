@@ -1,0 +1,33 @@
+{% extends "layouts/admin.njk" %}
+{% from "partials/icons.njk" import icon %}
+{% from "partials/macros.njk" import csrf, badge, pager, empty %}
+{% block title %}{{ t('nav.contact') }}{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>{{ t('nav.contact') }}</h1><p>{{ t('contact.subtitle') }}</p></div></div>
+{% if not enabled %}<div class="alert alert-info">{{ icon('info') }}<div>{{ t('contact.disabled_note') }}</div></div>{% endif %}
+<nav class="actions" style="margin-bottom:1rem">
+  <a class="btn btn-sm {{ 'btn-dark' if not query.status }}" href="/admin/contact-requests">{{ t('common.all') }}</a>
+  {% for s in ['new','relayed','closed'] %}<a class="btn btn-sm {{ 'btn-dark' if query.status == s }}" href="?status={{ s }}">{{ t('contact_status.' + s) }}</a>{% endfor %}
+</nav>
+<section class="card">
+  {% if list.rows.length %}
+  <div class="table-wrap"><table class="table table-cards">
+    <thead><tr><th>{{ t('contact.visitor') }}</th><th>{{ t('contact.message') }}</th><th>{{ t('contact.owner') }}</th><th>{{ t('fields.status') }}</th><th></th></tr></thead>
+    <tbody>{% for r in list.rows %}
+      <tr>
+        <td><strong>{{ r.visitor_name }}</strong><span class="sub ltr num">{{ fmt.phone(r.visitor_phone) }}</span><span class="sub num">{{ fmt.dateTime(r.created_at) }}</span></td>
+        <td style="max-width:360px;white-space:pre-wrap">{{ r.message }}</td>
+        <td data-hide-mobile><a href="/admin/customers/{{ r.customer_id }}">{{ r.customer_name }}</a><span class="sub ltr num">{{ fmt.phone(r.customer_mobile) }}</span><span class="sub">{{ r.make }} {{ r.model }} · {{ r.serial_no | serial }}</span></td>
+        <td>{{ badge(r.status, t('contact_status.' + r.status)) }}{% if r.handled_by_name %}<span class="sub">{{ r.handled_by_name }}</span>{% endif %}</td>
+        <td class="end">{% if can('contact.handle') %}
+          <form method="post" action="/admin/contact-requests/{{ r.id }}/status" class="actions" style="justify-content:flex-end">{{ csrf(csrfToken()) }}<input type="hidden" name="filter" value="{{ query.status or '' }}">
+            {% if r.status == 'new' %}<button class="btn btn-sm btn-primary" name="status" value="relayed">{{ t('contact.mark_relayed') }}</button>{% endif %}
+            {% if r.status != 'closed' %}<button class="btn btn-sm" name="status" value="closed">{{ t('contact.close') }}</button>{% else %}<button class="btn btn-sm btn-ghost" name="status" value="new">{{ t('contact.reopen') }}</button>{% endif %}
+          </form>{% endif %}</td>
+      </tr>{% endfor %}
+    </tbody>
+  </table></div>
+  {{ pager(list.pager, query, t, fmt) }}
+  {% else %}{{ empty(t('contact.empty_title'), t('contact.empty_text'), 'inbox') }}{% endif %}
+</section>
+{% endblock %}

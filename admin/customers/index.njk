@@ -1,0 +1,43 @@
+{% extends "layouts/admin.njk" %}
+{% from "partials/icons.njk" import icon %}
+{% from "partials/macros.njk" import badge, sortLink, pager, empty %}
+{% block title %}{{ t('nav.customers') }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{{ t('nav.customers') }}</h1><p>{{ t('customers.subtitle') }}</p></div>
+  <div class="actions">{% if can('customers.create') %}<a class="btn btn-primary" href="/admin/customers/new">{{ icon('plus') }} {{ t('customers.new') }}</a>{% endif %}</div>
+</div>
+<section class="card">
+  <form class="toolbar" method="get" data-autosubmit role="search">
+    <div class="search">{{ icon('search') }}<input type="search" name="q" value="{{ query.q or '' }}" placeholder="{{ t('customers.search_placeholder') }}" aria-label="{{ t('common.search') }}"></div>
+    <select name="status" aria-label="{{ t('fields.status') }}"><option value="">{{ t('common.all_statuses') }}</option>{% for s in ['active','inactive','archived'] %}<option value="{{ s }}"{% if query.status == s %} selected{% endif %}>{{ t('customer_status.' + s) }}</option>{% endfor %}</select>
+    <select name="visibility" aria-label="{{ t('fields.phone_visibility') }}"><option value="">{{ t('customers.any_visibility') }}</option>{% for s in ['not_set','public','private'] %}<option value="{{ s }}"{% if query.visibility == s %} selected{% endif %}>{{ t('visibility.' + s) }}</option>{% endfor %}</select>
+    <button class="btn" type="submit">{{ t('common.search') }}</button>
+  </form>
+  {% if list.rows.length %}
+  <div class="table-wrap"><table class="table table-cards">
+    <thead><tr>
+      <th>{{ sortLink('name', t('fields.full_name'), list, query) }}</th>
+      <th>{{ t('fields.mobile') }}</th>
+      <th>{{ t('fields.phone_visibility') }}</th>
+      <th class="end">{{ t('nav.vehicles') }}</th>
+      <th>{{ t('fields.status') }}</th>
+      <th>{{ sortLink('registered', t('fields.registration_date'), list, query) }}</th>
+    </tr></thead>
+    <tbody>
+    {% for c in list.rows %}
+      <tr>
+        <td><a class="primary" href="/admin/customers/{{ c.id }}">{{ c.full_name }}</a> {% if c.is_test_data %}{{ badge('test', t('common.test_data'), 'badge-plain') }}{% endif %}<span class="sub">{{ c.customer_ref }}</span></td>
+        <td data-hide-mobile><span class="ltr num">{{ fmt.phone(c.mobile) }}</span></td>
+        <td>{{ badge(c.phone_visibility, t('visibility.' + c.phone_visibility)) }}</td>
+        <td class="end num" data-hide-mobile>{{ fmt.number(c.vehicle_count) }}</td>
+        <td data-hide-mobile>{{ badge(c.status, t('customer_status.' + c.status)) }}</td>
+        <td class="num" data-hide-mobile>{{ fmt.date(c.registration_date) }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {{ pager(list.pager, query, t, fmt) }}
+  {% else %}{{ empty(t('customers.empty_title'), t('common.empty_filtered') if (query.q or query.status or query.visibility) else t('customers.empty_text'), 'users') }}{% endif %}
+</section>
+{% endblock %}

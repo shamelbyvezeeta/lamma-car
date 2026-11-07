@@ -1,0 +1,21 @@
+{% extends "layouts/admin.njk" %}
+{% from "partials/icons.njk" import icon %}
+{% from "partials/macros.njk" import csrf, input, textarea, validationSummary, formError %}
+{% block title %}{{ t('batches.new') }}{% endblock %}
+{% block content %}
+<div class="page-head"><div><div class="crumbs"><a href="/admin/batches">{{ t('nav.batches') }}</a></div><h1>{{ t('batches.new') }}</h1><p>{{ t('batches.new_help') }}</p></div></div>
+{{ validationSummary(errors, t) }}{{ formError(formErrorKey, formErrorParams, t) }}
+<form class="card" method="post" action="/admin/batches" novalidate style="max-width:760px" data-confirm="{{ t('batches.confirm_create') }}">
+  {{ csrf(csrfToken()) }}
+  <input type="hidden" name="request_token" value="{{ form.request_token }}">
+  <div class="card-body">
+    <div class="form-grid">
+      {{ input('name', t('fields.batch_name'), form, errors, t, 'text', true, t('batches.name_hint'), 'maxlength="80"') }}
+      {{ input('quantity', t('fields.quantity'), form, errors, t, 'number', true, t('batches.quantity_hint'), 'min="1" max="5000" inputmode="numeric"') }}
+      {{ textarea('notes', t('fields.notes'), form, errors, t, '', 1000) }}
+    </div>
+    <div class="alert alert-info" style="margin:0">{{ icon('info') }}<div>{{ t('batches.lifecycle_note') }}</div></div>
+  </div>
+  <div class="form-actions"><a class="btn btn-ghost" href="/admin/batches">{{ t('common.cancel') }}</a><button class="btn btn-primary" type="submit">{{ t('batches.generate') }}</button></div>
+</form>
+{% endblock %}

@@ -1,0 +1,46 @@
+{% extends "layouts/admin.njk" %}
+{% from "partials/icons.njk" import icon %}
+{% from "partials/macros.njk" import csrf, input, textarea, select, validationSummary, formError %}
+{% block title %}{{ t('vehicles.add') if isNew else t('vehicles.edit') }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <div class="crumbs"><a href="/admin/customers/{{ c.id }}">{{ c.full_name }}</a>{% if not isNew %} / <a href="/admin/vehicles/{{ v.id }}">{{ v.vehicle_ref }}</a>{% endif %}</div>
+    <h1>{{ t('vehicles.add') if isNew else t('vehicles.edit') }}</h1>
+  </div>
+</div>
+{{ validationSummary(errors, t) }}{{ formError(formErrorKey, formErrorParams, t) }}
+{% set cats = options(t, 'category', ['sedan','hatchback','suv','crossover','coupe','convertible','pickup','van','minivan','wagon','other']) %}
+<form class="card" method="post" action="{{ '/admin/vehicles' if isNew else '/admin/vehicles/' + v.id }}" novalidate>
+  {{ csrf(csrfToken()) }}
+  {% if isNew %}<input type="hidden" name="customer_id" value="{{ c.id }}">{% endif %}
+  <div class="card-body">
+    <h2 class="section-title">{{ t('vehicles.section_basic') }}</h2>
+    <div class="form-grid">
+      {{ input('make', t('fields.make'), form, errors, t, 'text', true, t('vehicles.make_hint'), 'maxlength="60"') }}
+      {{ input('model', t('fields.model'), form, errors, t, 'text', true, '', 'maxlength="60"') }}
+      {{ input('model_year', t('fields.model_year'), form, errors, t, 'number', true, '', 'min="1950" max="2100" inputmode="numeric"') }}
+      {{ input('color', t('fields.color'), form, errors, t, 'text', true, '', 'maxlength="40"') }}
+      {{ select('category', t('fields.category'), cats, form, errors, t, true) }}
+      {{ select('listing_status', t('fields.listing_status'), [{value:'unlisted',label:t('listing.unlisted')},{value:'listed',label:t('listing.listed')},{value:'sold',label:t('listing.sold')}], form, errors, t, true) }}
+    </div>
+    <p class="hint" style="margin-top:-.3rem">{{ t('vehicles.listing_help') }}</p>
+    <hr class="divider">
+    <h2 class="section-title">{{ t('vehicles.section_details') }}</h2>
+    <div class="form-grid">
+      {{ select('transmission', t('fields.transmission'), [{value:'automatic',label:t('transmission.automatic')},{value:'manual',label:t('transmission.manual')}], form, errors, t, false, '—') }}
+      {{ select('fuel_type', t('fields.fuel_type'), [{value:'petrol',label:t('fuel.petrol')},{value:'diesel',label:t('fuel.diesel')},{value:'hybrid',label:t('fuel.hybrid')},{value:'electric',label:t('fuel.electric')},{value:'natural_gas',label:t('fuel.natural_gas')}], form, errors, t, false, '—') }}
+      {{ input('mileage_km', t('fields.mileage_km'), form, errors, t, 'number', false, '', 'min="0" inputmode="numeric"') }}
+      <div class="field"><label class="check" style="margin-top:1.9rem"><input type="checkbox" name="show_mileage"{% if form.show_mileage == true or form.show_mileage == 'on' %} checked{% endif %}><span>{{ t('vehicles.show_mileage') }}</span></label></div>
+      {{ input('asking_price', t('fields.asking_price'), form, errors, t, 'text', false, '', 'inputmode="decimal" class="input-ltr"') }}
+      {{ input('price_currency', t('fields.currency'), form, errors, t, 'text', false, '', 'maxlength="3" class="input-ltr"') }}
+      <div class="field span-2"><label class="check"><input type="checkbox" name="show_price"{% if form.show_price == true or form.show_price == 'on' %} checked{% endif %}><span>{{ t('vehicles.show_price') }}</span></label></div>
+      {{ textarea('public_description', t('fields.public_description'), form, errors, t, t('vehicles.description_hint'), 600) }}
+    </div>
+  </div>
+  <div class="form-actions">
+    <a class="btn btn-ghost" href="{{ '/admin/customers/' + c.id if isNew else '/admin/vehicles/' + v.id }}">{{ t('common.cancel') }}</a>
+    <button class="btn btn-primary" type="submit">{{ t('vehicles.create') if isNew else t('common.save') }}</button>
+  </div>
+</form>
+{% endblock %}
