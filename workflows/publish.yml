@@ -1,0 +1,55 @@
+# Checks the records, builds the static site and publishes it on GitHub Pages.
+# Runs automatically on every change to the main branch, and after "Add record" / "Manage record".
+# Only the generated _site folder is published — never records/ or any other source file.
+name: Publish website
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # When started by "Add record"/"Manage record", build the newest commit (the one just saved).
+          ref: ${{ github.event_name == 'push' && github.sha || github.ref }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --omit=dev
+      - id: pages
+        uses: actions/configure-pages@v5
+      - name: Check records
+        run: node tools/validate.js
+      - name: Build website
+        run: node tools/build.js
+        env:
+          PAGES_BASE_URL: ${{ steps.pages.outputs.base_url }}
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+          retention-days: 1
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

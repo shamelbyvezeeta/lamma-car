@@ -1,0 +1,84 @@
+# Actions tab → "Add record" → Run workflow → fill in the form.
+# Creates records/<NEW-CODE>.json with a new random code, publishes the contact page, and produces the
+# sticker print files (download them under "Artifacts" at the bottom of the run page).
+#
+# Privacy: the form values are read from the run's event file by tools/add-record.js and are never
+# printed in the log (they are also masked). Do NOT add them to `env:` or `run:` lines in this file —
+# GitHub prints those values in the log.
+name: Add record
+
+on:
+  workflow_dispatch:
+    inputs:
+      name:
+        description: "Display name ONLY — first name, or first name + last initial (e.g. Ahmed M.)"
+        required: true
+        type: string
+      phone:
+        description: "Egyptian mobile number — 010, 011, 012 or 015 (e.g. 01xxxxxxxxx)"
+        required: true
+        type: string
+      consent_confirmed:
+        description: "I confirm this person agreed to publish this display name and mobile number on the public page (signed consent kept outside GitHub)"
+        required: true
+        type: boolean
+        default: false
+      consent_date:
+        description: "Date the person agreed (YYYY-MM-DD)"
+        required: true
+        type: string
+
+concurrency:
+  group: records
+  cancel-in-progress: false
+
+jobs:
+  add:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      code: ${{ steps.add.outputs.code }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --omit=dev
+      - id: pages
+        uses: actions/configure-pages@v5
+      - id: add
+        name: Create record (values read privately from the form)
+        run: node tools/add-record.js
+        env:
+          PAGES_BASE_URL: ${{ steps.pages.outputs.base_url }}
+      - name: Save to repository
+        env:
+          CODE: ${{ steps.add.outputs.code }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "records/$CODE.json"
+          git commit -q -m "Add record $CODE"
+          git push -q origin HEAD:main
+      - name: Create sticker print files (QR and code only, no personal data)
+        run: node tools/stickers.js
+        env:
+          PAGES_BASE_URL: ${{ steps.pages.outputs.base_url }}
+          STICKER_CODES: ${{ steps.add.outputs.code }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sticker-files-${{ steps.add.outputs.code }}
+          path: _stickers/
+          retention-days: 90
+
+  publish:
+    needs: add
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/publish.yml

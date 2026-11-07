@@ -1,0 +1,37 @@
+# Actions tab → "Make sticker files" → Run workflow. Enter one or more record codes
+# (separated by commas), or leave empty for every active and hidden record.
+# Download "sticker-files" at the bottom of the run page. The files contain the QR and code only.
+name: Make sticker files
+
+on:
+  workflow_dispatch:
+    inputs:
+      codes:
+        description: "Record codes, comma-separated (empty = all active and hidden records)"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  stickers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --omit=dev
+      - id: pages
+        uses: actions/configure-pages@v5
+      - run: node tools/stickers.js
+        env:
+          PAGES_BASE_URL: ${{ steps.pages.outputs.base_url }}
+          STICKER_CODES: ${{ inputs.codes }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sticker-files
+          path: _stickers/
+          retention-days: 30

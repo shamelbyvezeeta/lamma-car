@@ -1,0 +1,79 @@
+# Actions tab → "Manage record" → Run workflow.
+#   update-details  change the display name and/or the mobile number (needs fresh consent + date)
+#   hide            temporarily take the contact page offline ("not active" page)
+#   reactivate      put a hidden record back online
+#   retire          permanently stop the code and ERASE the name and number from the record
+# Then the website is republished. The QR sticker never needs reprinting for these changes.
+#
+# Privacy: form values are read privately by tools/manage-record.js — never put them in env:/run: lines.
+name: Manage record
+
+on:
+  workflow_dispatch:
+    inputs:
+      code:
+        description: "Record code (10 characters, e.g. 7KQ2M9XH4D)"
+        required: true
+        type: string
+      action:
+        description: "What to do"
+        required: true
+        type: choice
+        options: [update-details, hide, reactivate, retire]
+      name:
+        description: "update-details only: new display name (leave empty to keep the current one)"
+        required: false
+        type: string
+      phone:
+        description: "update-details only: new Egyptian mobile number (leave empty to keep the current one)"
+        required: false
+        type: string
+      consent_confirmed:
+        description: "update-details only: I confirm the person agreed to publish the new details"
+        required: false
+        type: boolean
+        default: false
+      consent_date:
+        description: "update-details only: date the person agreed (YYYY-MM-DD)"
+        required: false
+        type: string
+
+concurrency:
+  group: records
+  cancel-in-progress: false
+
+jobs:
+  change:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --omit=dev
+      - id: change
+        name: Change record (values read privately from the form)
+        run: node tools/manage-record.js
+      - name: Save to repository
+        env:
+          CODE: ${{ steps.change.outputs.code }}
+          ACTION: ${{ steps.change.outputs.action }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "records/$CODE.json"
+          git commit -q -m "Record $CODE: $ACTION"
+          git push -q origin HEAD:main
+
+  publish:
+    needs: change
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/publish.yml
